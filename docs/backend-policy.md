@@ -63,13 +63,13 @@ ImGui panel code can be shared across backends, but renderer/platform binding co
 Expected split:
 
 ```txt
-DevUI/
+src/ngin/dev_ui/
   Panels and debug tooling.
 
-RHI_DX12/
+src/ngin/rhi_dx12/
   DX12 ImGui renderer binding.
 
-RHI_Vulkan/
+future Vulkan backend folder
   Vulkan ImGui renderer binding, added later.
 ```
 

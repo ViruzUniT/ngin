@@ -18,6 +18,24 @@ Ngin should separate engine-facing renderer code from backend-specific graphics 
 
 `DevUI` owns ImGui debug/testing panels and backend-specific ImGui setup. It is compiled only when dev UI is enabled.
 
+## Folder Layout
+
+Current source folders use lowercase names and underscores:
+
+```txt
+src/
+  ngin/
+    core/
+    platform/
+    renderer/
+    rhi/
+    rhi_dx12/
+    dev_ui/
+  sandbox/
+```
+
+Conceptual module names such as `Core`, `Renderer`, `RHI_DX12`, and `DevUI` refer to these folders in documentation. Concrete includes, build scripts, and Premake paths should use the actual lowercase folder names.
+
 ## Dependency Direction
 
 Dependencies should flow inward:
@@ -26,7 +44,7 @@ Dependencies should flow inward:
 App / Tools
   -> Renderer
     -> RHI
-      -> RHI_DX12 or RHI_Vulkan
+      -> rhi_dx12 or future Vulkan backend
 ```
 
 High-level code must not include DX12 or Vulkan headers directly. Backend headers should stay in backend modules.

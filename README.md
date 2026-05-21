@@ -30,6 +30,20 @@ The engine should be split into layers with clear ownership:
 | `RHI_Vulkan` | Future Vulkan implementation of the same RHI contracts. |
 | `DevUI` | ImGui debug and testing UI for development and staging builds only. |
 
+Current source folder layout:
+
+```txt
+src/
+  ngin/
+    core/
+    platform/
+    renderer/
+    rhi/
+    rhi_dx12/
+    dev_ui/
+  sandbox/
+```
+
 More detail: [Architecture](docs/architecture.md).
 
 ## Rendering Backend Strategy
@@ -38,10 +52,10 @@ DirectX 12 is the first target because it is the best fit for the initial Window
 
 Backend-specific implementation details must stay inside backend modules:
 
-- Native DX12 device, command queue, descriptor heap, command allocator, command list, fence, swapchain, and pipeline objects stay in `RHI_DX12`.
+- Native DX12 device, command queue, descriptor heap, command allocator, command list, fence, swapchain, and pipeline objects stay in the DX12 backend folder: `src/ngin/rhi_dx12/`.
 - Shared renderer systems should use RHI interfaces and renderer-owned abstractions.
 - Shader, pipeline, and resource descriptions should be backend-neutral where practical.
-- Vulkan support should be added by implementing the same RHI behavior in `RHI_Vulkan`, not by rewriting renderer-facing systems.
+- Vulkan support should be added later by implementing the same RHI behavior in a future Vulkan backend folder, not by rewriting renderer-facing systems.
 
 More detail: [Backend Policy](docs/backend-policy.md).
 

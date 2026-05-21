@@ -1,0 +1,9 @@
+# Format Style Options - Created with Clang Power Tools
+---
+AlignAfterOpenBracket: DontAlign
+AllowAllArgumentsOnNextLine: false
+# DerivePointerAlignment: true
+BasedOnStyle: Google
+AllowShortIfStatementsOnASingleLine: Never
+ColumnLimit: 98
+...

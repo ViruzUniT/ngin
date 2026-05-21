@@ -1,0 +1,8 @@
+CompileFlags:
+  Compiler: clang++
+  Add:
+    - -std=c++23
+    - -xc++
+    - -DNGIN_DEBUG
+    - -DNGIN_DEV_UI
+    - -IC:/Users/dmitrij.bertasius/Desktop/code/ngin/src/ngin/include
