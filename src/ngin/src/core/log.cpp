@@ -1,4 +1,5 @@
 #include <ngin/core/log.h>
+#include <ngin/pch.h>
 
 #include <iostream>
 
@@ -27,7 +28,8 @@ const char* logLevelName(LogLevel level) {
 }  // namespace
 
 void log(LogLevel level, std::string_view message) {
-  std::ostream& output = (level == LogLevel::Error || level == LogLevel::Fatal) ? std::cerr : std::clog;
+  std::ostream& output =
+      (level == LogLevel::Error || level == LogLevel::Fatal) ? std::cerr : std::clog;
   output << '[' << logLevelName(level) << "] " << message << '\n';
 }
 

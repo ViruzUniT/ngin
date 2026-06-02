@@ -3,6 +3,8 @@ kind("StaticLib")
 language("C++")
 cppdialect("C++23")
 staticruntime("off")
+pchheader("ngin/pch.h")
+pchsource("src/pch.cpp")
 
 targetdir("../../bin/" .. outputdir .. "/%{prj.name}")
 objdir("../../bin-int/" .. outputdir .. "/%{prj.name}")
