@@ -1,6 +1,6 @@
 #include <ngin/core/base.h>
+#include <ngin/pch.h>
 #include <ngin/platform/window.h>
-#include <windows.h>
 
 #include <format>
 
@@ -41,13 +41,13 @@ ErrorCode Create(Properties const& props) {
   wc.lpszMenuName = 0;
   wc.hIcon = 0;
 
-  if (!RegisterClass(&wc)) {
+  if (!RegisterClassA(&wc)) {
     Ngin::logError(std::format("Creating window failed. Couldnt RegisterClass Error code {}",
         GetLastError()));
     return ErrorCode::PlatformError;
   }
 
-  hwnd = CreateWindowEx(0, props.name.data(), props.name.data(), WS_OVERLAPPEDWINDOW,
+  hwnd = CreateWindowExA(0, props.name.data(), props.name.data(), WS_OVERLAPPEDWINDOW,
       CW_USEDEFAULT, CW_USEDEFAULT, props.width, props.height, NULL, NULL, nullptr, NULL);
 
   if (hwnd == 0) {

@@ -1,5 +1,6 @@
 #include <ngin/core/assert.h>
 #include <ngin/core/log.h>
+#include <ngin/pch.h>
 
 #include <cstdlib>
 #include <sstream>
@@ -26,7 +27,8 @@ void debugBreak() {
 #endif
 }
 
-[[noreturn]] void reportAssertionFailure(std::string_view expression, std::string_view message, std::source_location location) {
+[[noreturn]] void reportAssertionFailure(std::string_view expression, std::string_view message,
+    std::source_location location) {
   std::ostringstream output;
   output << "Assertion failed: " << expression;
 
