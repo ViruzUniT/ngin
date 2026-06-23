@@ -48,3 +48,7 @@ Use short conventional-style subjects like `docs: add struct docs`. Keep commits
 ## Security & Configuration Tips
 
 Do not commit generated directories, binaries, logs, or local tool artifacts. Keep dependencies under `vendor/`. `RELEASE` must stay free of debug panels, developer menus, and staging diagnostics.
+
+## Update
+
+Update this agents.md file everytime you notice the project progressing
