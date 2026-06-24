@@ -4,7 +4,7 @@
 
 int main() {
   Ngin::logInfo("Sandbox starting.");
-  if (Ngin::Window::Create(Ngin::Window::Properties(1200, 720, "Test")) !=
+  if (Ngin::Window::Create(Ngin::Window::Properties(1200, 720, "test", "test")) !=
       Ngin::ErrorCode::None) {
     Ngin::logFatal("Window could not be created");
     return 1;

@@ -29,6 +29,10 @@ Use uppercase configs: `DEBUG` enables diagnostics/dev UI, `STAGING` keeps diagn
 
 Format C++ with `.clang-format`: Google style, 140-column limit. Use lowercase folder names and underscores in paths. Use the `Ngin` namespace and include public engine headers as `<ngin/...>`. Guard dev UI with `#if NGIN_DEV_UI`.
 
+## Collaboration Rules
+
+Do not correct code, edit files, or show code snippets unless the user explicitly asks for that. When troubleshooting, explain the cause and guidance in plain language first.
+
 ## Testing Guidelines
 
 No test framework yet. Keep the console-based vertical slice working:
@@ -39,7 +43,7 @@ No test framework yet. Keep the console-based vertical slice working:
 ./build.ps1 run STAGING
 ```
 
-Run `./build.ps1 run RELEASE` when touching dev UI guards or config logic. Next milestones: Win32 window creation, minimal DX12 clear-color rendering, then ImGui for `DEBUG` and `STAGING`.
+Run `./build.ps1 run RELEASE` when touching dev UI guards or config logic. Current status: Win32 window creation is in place. Next milestones: minimal DX12 clear-color rendering, then ImGui for `DEBUG` and `STAGING`.
 
 ## Commit & Pull Request Guidelines
 

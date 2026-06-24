@@ -12,17 +12,17 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam) 
       Ngin::logInfo("Window created :)");
       return 0;
     case WM_CLOSE:
-      DestroyWindow(props.hwnd);
-      props.hwnd = 0;
+      DestroyWindow(hwnd);
+      props.windowHandle = 0;
       return 0;
 
     case WM_DESTROY:
       PostQuitMessage(0);
-      props.hwnd = 0;
+      props.windowHandle = 0;
       return 0;
 
     default:
-      return DefWindowProc(props.hwnd, message, wParam, lParam);
+      return DefWindowProc(hwnd, message, wParam, lParam);
   }
 }
 
@@ -32,10 +32,12 @@ ErrorCode Create(Properties const& windowProps) {
   props = windowProps;
 
   WNDCLASS wc;
+  HINSTANCE instance = GetModuleHandleA(nullptr);
+
   wc.style = CS_VREDRAW | CS_HREDRAW;
   wc.lpszClassName = props.className.c_str();
   wc.lpfnWndProc = WndProc;
-  wc.hInstance = nullptr;
+  wc.hInstance = instance;
   wc.cbClsExtra = 0;
   wc.cbWndExtra = 0;
   wc.hCursor = LoadCursorA(0, IDC_ARROW);
@@ -49,11 +51,11 @@ ErrorCode Create(Properties const& windowProps) {
     return ErrorCode::PlatformError;
   }
 
-  props.hwnd =
+  props.windowHandle =
       CreateWindowExA(0, props.className.c_str(), props.name.c_str(), WS_OVERLAPPEDWINDOW,
-          CW_USEDEFAULT, CW_USEDEFAULT, props.width, props.height, NULL, NULL, nullptr, NULL);
+          CW_USEDEFAULT, CW_USEDEFAULT, props.width, props.height, NULL, NULL, instance, NULL);
 
-  if (props.hwnd == 0) {
+  if (props.windowHandle == nullptr) {
     Ngin::logError(std::format("Creating Window failed: Couldnt CreateWindowEx Error code {}",
         GetLastError()));
     return ErrorCode::PlatformError;
@@ -63,15 +65,15 @@ ErrorCode Create(Properties const& windowProps) {
 }
 
 ErrorCode SetShow(CmdShow shouldShow) {
-  if (props.hwnd == 0) {
+  if (props.windowHandle == 0) {
     return ErrorCode::PlatformError;
   }
-  ShowWindow(props.hwnd, shouldShow);
+  ShowWindow(props.windowHandle, shouldShow);
   return ErrorCode::None;
 }
 
 ErrorCode Update() {
-  if (props.hwnd == 0) {
+  if (props.windowHandle == 0) {
     return ErrorCode::PlatformError;
   }
 
@@ -79,7 +81,7 @@ ErrorCode Update() {
 
   while (PeekMessage(&msg, nullptr, 0, 0, PM_REMOVE)) {
     if (msg.message == WM_QUIT) {
-      props.hwnd = 0;
+      props.windowHandle = 0;
       return ErrorCode::PlatformError;
     }
     TranslateMessage(&msg);

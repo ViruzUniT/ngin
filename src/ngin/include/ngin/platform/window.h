@@ -16,7 +16,7 @@ struct Properties {
   uint16_t height;
   std::string name;
   std::string className = "NginWindow";
-  HWND hwnd = nullptr;
+  HWND windowHandle = nullptr;
 
   Properties(uint16_t width, uint16_t height, std::string_view name, std::string_view className)
       : width(width), height(height), name(name), className(className) {}
