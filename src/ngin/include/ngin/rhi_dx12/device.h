@@ -6,7 +6,7 @@
 namespace Ngin {
 struct RHI : NonCopyable {
   RHI() = delete;
-  static RHI* Create(HWND hwnd, uint16_t windowWidth, uint16_t windowHeight);
+  static HRESULT Create(HWND hwnd, uint16_t windowWidth, uint16_t windowHeight, RHI*& rhi);
 
  private:
   RHI(ID3D12Device* device, ID3D12CommandQueue* cmdQueue, IDXGISwapChain* swapChain,
@@ -27,14 +27,14 @@ struct RHI : NonCopyable {
   ID3D12DescriptorHeap* RtvHeap;
 
  private:
-  static HRESULT CreateCommandQueue(ID3D12Device* device, ID3D12CommandQueue* cmdQueue);
-  static HRESULT CreateCommandAllocator(ID3D12Device* device, ID3D12CommandAllocator* cmdAlloc);
-  static HRESULT CreateCommandList(ID3D12Device* device, ID3D12GraphicsCommandList* cmdList,
+  static HRESULT CreateCommandQueue(ID3D12Device* device, ID3D12CommandQueue*& cmdQueue);
+  static HRESULT CreateCommandAllocator(ID3D12Device* device, ID3D12CommandAllocator*& cmdAlloc);
+  static HRESULT CreateCommandList(ID3D12Device* device, ID3D12GraphicsCommandList*& cmdList,
       ID3D12CommandAllocator* cmdAlloc);
-  static HRESULT CreateSwapChain(IDXGIFactory* factory, IDXGISwapChain* swapChain,
+  static HRESULT CreateSwapChain(IDXGIFactory* factory, IDXGISwapChain*& swapChain,
       ID3D12CommandQueue* cmdQueue, uint16_t windowWidth, uint16_t windowHeight, HWND hwnd,
       bool windowed);
   static HRESULT CreateRtvHeap(ID3D12Device* device, IDXGISwapChain* swapChain,
-      ID3D12DescriptorHeap* rtvHeap);
+      ID3D12DescriptorHeap*& rtvHeap);
 };
 }  // namespace Ngin
