@@ -35,7 +35,7 @@ HRESULT RHI::Create(HWND hwnd, uint16_t windowWidth, uint16_t windowHeight, RHI*
   if (FAILED(hr))
     return hr;
 
-  rhi = new RHI(device, cmdQueue, swapChain, cmdAlloc, cmdList, rtvHeap);
+  rhi = new RHI(device, cmdQueue, swapChain, cmdAlloc, cmdList, rtvHeap, factory);
   return hr;
 }
 

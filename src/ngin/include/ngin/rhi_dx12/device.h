@@ -3,28 +3,58 @@
 #include <ngin/core/utility.h>
 #include <ngin/pch.h>
 
+#include <utility>
+
 namespace Ngin {
 struct RHI : NonCopyable {
+ public:
   RHI() = delete;
   static HRESULT Create(HWND hwnd, uint16_t windowWidth, uint16_t windowHeight, RHI*& rhi);
 
+  RHI(RHI&& other) {
+    Device = std::move(other.Device);
+    CmdQueue = std::move(other.CmdQueue);
+    SwapChain = std::move(other.SwapChain);
+    CmdAlloc = std::move(other.CmdAlloc);
+    CmdList = std::move(other.CmdList);
+    RtvHeap = std::move(other.RtvHeap);
+    Factory = std::move(other.Factory);
+  }
+  RHI& operator=(RHI&& other) {
+    if (this == &other)
+      return *this;
+
+    Device = std::move(other.Device);
+    CmdQueue = std::move(other.CmdQueue);
+    SwapChain = std::move(other.SwapChain);
+    CmdAlloc = std::move(other.CmdAlloc);
+    CmdList = std::move(other.CmdList);
+    RtvHeap = std::move(other.RtvHeap);
+    Factory = std::move(other.Factory);
+    return *this;
+  }
+
  private:
   RHI(ID3D12Device* device, ID3D12CommandQueue* cmdQueue, IDXGISwapChain* swapChain,
-      ID3D12CommandAllocator* cmdAlloc, ID3D12CommandList* cmdList, ID3D12DescriptorHeap* rtvHeap)
-      : Device(device),
-        CmdQueue(cmdQueue),
-        SwapChain(swapChain),
-        CmdAlloc(cmdAlloc),
-        CmdList(cmdList),
-        RtvHeap(rtvHeap) {}
+      ID3D12CommandAllocator* cmdAlloc, ID3D12CommandList* cmdList, ID3D12DescriptorHeap* rtvHeap,
+      IDXGIFactory* factory) {
+    Device.reset(device);
+    CmdQueue.reset(cmdQueue);
+    SwapChain.reset(swapChain);
+    CmdAlloc.reset(cmdAlloc);
+    CmdList.reset(cmdList);
+    RtvHeap.reset(rtvHeap);
+    Factory.reset(factory);
+  }
 
  public:
-  ID3D12Device* Device;
-  ID3D12CommandQueue* CmdQueue;
-  IDXGISwapChain* SwapChain;
-  ID3D12CommandAllocator* CmdAlloc;
-  ID3D12CommandList* CmdList;
-  ID3D12DescriptorHeap* RtvHeap;
+  Scope<ID3D12Device> Device;
+  Scope<ID3D12CommandQueue> CmdQueue;
+  Scope<IDXGISwapChain> SwapChain;
+  Scope<ID3D12CommandAllocator> CmdAlloc;
+  Scope<ID3D12CommandList> CmdList;
+  Scope<ID3D12DescriptorHeap> RtvHeap;
+  Scope<IDXGIFactory> Factory;
 
  private:
   static HRESULT CreateCommandQueue(ID3D12Device* device, ID3D12CommandQueue*& cmdQueue);
