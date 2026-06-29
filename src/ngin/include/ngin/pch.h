@@ -1,6 +1,6 @@
 #pragma once
 
-#include <ngin/core/config.h>
+#include <ngin/core/base.h>
 
 #include <cstddef>
 #include <cstdint>
