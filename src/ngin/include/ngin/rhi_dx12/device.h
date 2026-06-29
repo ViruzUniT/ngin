@@ -48,9 +48,9 @@ struct RHI : NonCopyable {
   }
 
  public:
-  Scope<ID3D12Device> Device;
-  Scope<ID3D12CommandQueue> CmdQueue;
-  Scope<IDXGISwapChain> SwapChain;
+  ComScope<ID3D12Device> Device;
+  ComScope<ID3D12CommandQueue> CmdQueue;
+  ComScope<IDXGISwapChain> SwapChain;
   Scope<ID3D12CommandAllocator> CmdAlloc;
   Scope<ID3D12CommandList> CmdList;
   Scope<ID3D12DescriptorHeap> RtvHeap;
