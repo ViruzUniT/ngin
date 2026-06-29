@@ -1,41 +1,63 @@
 #include <ngin/rhi_dx12/device.h>
 
 namespace Ngin {
-HRESULT RHI::Create(HWND hwnd, uint16_t windowWidth, uint16_t windowHeight, RHI*& rhi) {
-  ID3D12Device* device = nullptr;
-  ID3D12CommandQueue* cmdQueue = nullptr;
-  IDXGISwapChain* swapChain = nullptr;
-  ID3D12CommandAllocator* cmdAlloc = nullptr;
-  ID3D12GraphicsCommandList* cmdList = nullptr;
-  ID3D12DescriptorHeap* rtvHeap = nullptr;
+HRESULT RHI::Create(HWND hwnd, uint16_t windowWidth, uint16_t windowHeight, Scope<RHI>& rhi) {
+  ID3D12Device* tempDevice = nullptr;
+  ID3D12CommandQueue* tempCmdQueue = nullptr;
+  IDXGISwapChain* tempSwapChain = nullptr;
+  ID3D12CommandAllocator* tempCmdAlloc = nullptr;
+  ID3D12GraphicsCommandList* tempCmdList = nullptr;
+  ID3D12DescriptorHeap* tempRtvHeap = nullptr;
+  IDXGIFactory* tempFactory = nullptr;
 
-  // TODO: handle that
-  HRESULT hr = D3D12CreateDevice(nullptr, D3D_FEATURE_LEVEL_12_2, IID_PPV_ARGS(&device));
-  if (FAILED(hr))
-    return hr;
+  ComScope<ID3D12Device> device = nullptr;
+  ComScope<ID3D12CommandQueue> cmdQueue = nullptr;
+  ComScope<IDXGISwapChain> swapChain = nullptr;
+  ComScope<ID3D12CommandAllocator> cmdAlloc = nullptr;
+  ComScope<ID3D12GraphicsCommandList> cmdList = nullptr;
+  ComScope<ID3D12DescriptorHeap> rtvHeap = nullptr;
+  ComScope<IDXGIFactory> factory = nullptr;
 
-  hr = CreateCommandQueue(device, cmdQueue);
+  HRESULT hr = D3D12CreateDevice(nullptr, D3D_FEATURE_LEVEL_12_2, IID_PPV_ARGS(&tempDevice));
   if (FAILED(hr))
     return hr;
-  hr = CreateCommandAllocator(device, cmdAlloc);
-  if (FAILED(hr))
-    return hr;
-  hr = CreateCommandList(device, cmdList, cmdAlloc);
-  if (FAILED(hr))
-    return hr;
+  device.reset(tempDevice);
 
-  IDXGIFactory* factory = nullptr;
-  hr = CreateDXGIFactory1(IID_PPV_ARGS(&factory));
+  hr = CreateCommandQueue(tempDevice, tempCmdQueue);
   if (FAILED(hr))
     return hr;
-  hr = CreateSwapChain(factory, swapChain, cmdQueue, windowWidth, windowHeight, hwnd, true);
-  if (FAILED(hr))
-    return hr;
-  hr = CreateRtvHeap(device, swapChain, rtvHeap);
-  if (FAILED(hr))
-    return hr;
+  cmdQueue.reset(tempCmdQueue);
 
-  rhi = new RHI(device, cmdQueue, swapChain, cmdAlloc, cmdList, rtvHeap, factory);
+  hr = CreateCommandAllocator(tempDevice, tempCmdAlloc);
+  if (FAILED(hr))
+    return hr;
+  cmdAlloc.reset(tempCmdAlloc);
+
+  hr = CreateCommandList(tempDevice, tempCmdList, tempCmdAlloc);
+  if (FAILED(hr))
+    return hr;
+  cmdList.reset(tempCmdList);
+
+  hr = CreateDXGIFactory1(IID_PPV_ARGS(&tempFactory));
+  if (FAILED(hr))
+    return hr;
+  factory.reset(tempFactory);
+
+  hr = CreateSwapChain(tempFactory, tempSwapChain, tempCmdQueue, windowWidth, windowHeight, hwnd,
+      true);
+  if (FAILED(hr))
+    return hr;
+  swapChain.reset(tempSwapChain);
+
+  hr = CreateRtvHeap(tempDevice, tempSwapChain, tempRtvHeap);
+  if (FAILED(hr))
+    return hr;
+  rtvHeap.reset(tempRtvHeap);
+
+  auto tempRHI =
+      std::unique_ptr<RHI>(new RHI(std::move(device), std::move(cmdQueue), std::move(swapChain),
+          std::move(cmdAlloc), std::move(cmdList), std::move(rtvHeap), std::move(factory)));
+  rhi = std::move(tempRHI);
   return hr;
 }
 
@@ -83,10 +105,11 @@ HRESULT RHI::CreateSwapChain(IDXGIFactory* factory, IDXGISwapChain*& swapChain,
     return hr;
 
   hr = tempSwapChain->QueryInterface(IID_PPV_ARGS(&swapChain));
-  if (FAILED(hr))
-    return hr;
   tempSwapChain->Release();
   tempSwapChain = nullptr;
+  if (FAILED(hr))
+    return hr;
+
   return hr;
 }
 
@@ -95,24 +118,34 @@ HRESULT RHI::CreateRtvHeap(ID3D12Device* device, IDXGISwapChain* swapChain,
   D3D12_DESCRIPTOR_HEAP_DESC rtvHeapDesc = {};
   rtvHeapDesc.NumDescriptors = 2;
   rtvHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_RTV;
+
   HRESULT hr = device->CreateDescriptorHeap(&rtvHeapDesc, IID_PPV_ARGS(&rtvHeap));
   if (FAILED(hr))
     return hr;
 
-  ID3D12Resource* render_targets[2];
-
-  UINT rtv_increment_size =
+  ID3D12Resource* renderTargets[2] = {};
+  UINT rtvIncrementSize =
       device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
-  {
-    D3D12_CPU_DESCRIPTOR_HANDLE rtv_handle(rtvHeap->GetCPUDescriptorHandleForHeapStart());
-    for (UINT i = 0; i < 2; i++) {
-      hr = swapChain->GetBuffer(i, IID_PPV_ARGS(&render_targets[i]));
-      if (FAILED(hr))
-        return hr;
 
-      device->CreateRenderTargetView(render_targets[i], nullptr, rtv_handle);
-      rtv_handle.ptr += rtv_increment_size;
+  {
+    D3D12_CPU_DESCRIPTOR_HANDLE rtvHandle(rtvHeap->GetCPUDescriptorHandleForHeapStart());
+    for (UINT i = 0; i < 2; i++) {
+      hr = swapChain->GetBuffer(i, IID_PPV_ARGS(&renderTargets[i]));
+      if (FAILED(hr)) {
+        for (auto& renderTarget : renderTargets) {
+          if (renderTarget)
+            renderTarget->Release();
+        }
+        return hr;
+      }
+
+      device->CreateRenderTargetView(renderTargets[i], nullptr, rtvHandle);
+      rtvHandle.ptr += rtvIncrementSize;
     }
+  }
+  for (auto& renderTarget : renderTargets) {
+    if (renderTarget)
+      renderTarget->Release();
   }
   return hr;
 }
