@@ -51,10 +51,10 @@ struct RHI : NonCopyable {
   ComScope<ID3D12Device> Device;
   ComScope<ID3D12CommandQueue> CmdQueue;
   ComScope<IDXGISwapChain> SwapChain;
-  Scope<ID3D12CommandAllocator> CmdAlloc;
-  Scope<ID3D12CommandList> CmdList;
-  Scope<ID3D12DescriptorHeap> RtvHeap;
-  Scope<IDXGIFactory> Factory;
+  ComScope<ID3D12CommandAllocator> CmdAlloc;
+  ComScope<ID3D12CommandList> CmdList;
+  ComScope<ID3D12DescriptorHeap> RtvHeap;
+  ComScope<IDXGIFactory> Factory;
 
  private:
   static HRESULT CreateCommandQueue(ID3D12Device* device, ID3D12CommandQueue*& cmdQueue);
