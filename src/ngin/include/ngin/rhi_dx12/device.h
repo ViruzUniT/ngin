@@ -9,7 +9,7 @@ namespace Ngin {
 struct RHI : NonCopyable {
  public:
   RHI() = delete;
-  static HRESULT Create(HWND hwnd, uint16_t windowWidth, uint16_t windowHeight, RHI*& rhi);
+  static HRESULT Create(HWND hwnd, uint16_t windowWidth, uint16_t windowHeight, Scope<RHI>& rhi);
 
   RHI(RHI&& other) {
     Device = std::move(other.Device);
@@ -35,16 +35,17 @@ struct RHI : NonCopyable {
   }
 
  private:
-  RHI(ID3D12Device* device, ID3D12CommandQueue* cmdQueue, IDXGISwapChain* swapChain,
-      ID3D12CommandAllocator* cmdAlloc, ID3D12CommandList* cmdList, ID3D12DescriptorHeap* rtvHeap,
-      IDXGIFactory* factory) {
-    Device.reset(device);
-    CmdQueue.reset(cmdQueue);
-    SwapChain.reset(swapChain);
-    CmdAlloc.reset(cmdAlloc);
-    CmdList.reset(cmdList);
-    RtvHeap.reset(rtvHeap);
-    Factory.reset(factory);
+  RHI(ComScope<ID3D12Device> device, ComScope<ID3D12CommandQueue> cmdQueue,
+      ComScope<IDXGISwapChain> swapChain, ComScope<ID3D12CommandAllocator> cmdAlloc,
+      ComScope<ID3D12CommandList> cmdList, ComScope<ID3D12DescriptorHeap> rtvHeap,
+      ComScope<IDXGIFactory> factory) {
+    Device = std::move(device);
+    CmdQueue = std::move(cmdQueue);
+    SwapChain = std::move(swapChain);
+    CmdAlloc = std::move(cmdAlloc);
+    CmdList = std::move(cmdList);
+    RtvHeap = std::move(rtvHeap);
+    Factory = std::move(factory);
   }
 
  public:

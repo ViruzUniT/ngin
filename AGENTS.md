@@ -33,6 +33,8 @@ Format C++ with `.clang-format`: Google style, 140-column limit. Use lowercase f
 
 Do not correct code, edit files, or show code snippets unless the user explicitly asks for that. When troubleshooting, explain the cause and guidance in plain language first.
 
+When a tracked next step or TODO in this file is completed, remove it from the needed-next-step list or move it into current status during the same review.
+
 ## Testing Guidelines
 
 No test framework yet. Keep the console-based vertical slice working:
@@ -43,7 +45,7 @@ No test framework yet. Keep the console-based vertical slice working:
 ./build.ps1 run STAGING
 ```
 
-Run `./build.ps1 run RELEASE` when touching dev UI guards or config logic. Current status: Win32 window creation is in place. Needed next steps: add explicit RHI lifetime/cleanup ownership, then implement the renderer layer that owns initialization, frame rendering, resize handling, and shutdown. Next milestones: minimal DX12 clear-color rendering, then hide private engine/backend details from programs that use Ngin, then ImGui for `DEBUG` and `STAGING`.
+Run `./build.ps1 run RELEASE` when touching dev UI guards or config logic. Current status: Win32 window creation and explicit RHI lifetime/cleanup ownership are in place. Needed next steps: implement the renderer layer that owns initialization, frame rendering, resize handling, and shutdown. Next milestones: minimal DX12 clear-color rendering, then hide private engine/backend details from programs that use Ngin, then ImGui for `DEBUG` and `STAGING`.
 
 ## Commit & Pull Request Guidelines
 
