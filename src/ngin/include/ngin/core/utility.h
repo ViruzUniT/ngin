@@ -4,7 +4,6 @@
 #include <utility>
 
 namespace Ngin {
-
 class NonCopyable {
  protected:
   constexpr NonCopyable() noexcept = default;
@@ -44,7 +43,8 @@ class NonCopyableNonMovable {
 template <typename Function>
 class ScopeExit {
  public:
-  explicit ScopeExit(Function function) noexcept(std::is_nothrow_move_constructible_v<Function>) : function_(std::move(function)) {}
+  explicit ScopeExit(Function function) noexcept(std::is_nothrow_move_constructible_v<Function>)
+      : function_(std::move(function)) {}
 
   ScopeExit(ScopeExit&& other) noexcept(std::is_nothrow_move_constructible_v<Function>)
       : function_(std::move(other.function_)), active_(std::exchange(other.active_, false)) {}
