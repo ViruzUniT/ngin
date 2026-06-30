@@ -5,6 +5,8 @@
 
 #include <utility>
 
+#include "ngin/rhi_dx12/shader.h"
+
 namespace Ngin {
 struct RHI : NonCopyable {
  public:
@@ -79,5 +81,7 @@ struct RHI : NonCopyable {
   static HRESULT CreateSignature(ID3D12Device* device,
       ComScope<ID3D12RootSignature>& rootSignature, ComScope<ID3DBlob>& signatureBlob,
       ComScope<ID3DBlob>& errorBlob);
+  static HRESULT CreatePipeline(ID3D12Device* device, ID3D12RootSignature* rootSignature,
+      List<Shader> shaders);
 };
 }  // namespace Ngin
