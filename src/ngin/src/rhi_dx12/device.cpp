@@ -1,6 +1,9 @@
 #include <d3dcompiler.h>
 #include <ngin/rhi_dx12/device.h>
 
+void setBlendState(D3D12_BLEND_DESC& blendDesc);
+void setRasterizerState(D3D12_RASTERIZER_DESC& rasterizerDesc);
+void setDepthStencilState(D3D12_DEPTH_STENCIL_DESC& depthStencilDesc);
 namespace Ngin {
 HRESULT RHI::Create(HWND hwnd, uint16_t windowWidth, uint16_t windowHeight, Scope<RHI>& rhi) {
   ID3D12Device* tempDevice = nullptr;
@@ -188,6 +191,49 @@ HRESULT RHI::CreateSignature(ID3D12Device* device, ComScope<ID3D12RootSignature>
   return hr;
 }
 
+HRESULT RHI::CreatePipeline(ID3D12Device* device, ID3D12RootSignature* rootSignature,
+    ID3D12PipelineState*& pipelineState) {
+  ID3DBlob* vertexShader = nullptr;
+  ID3DBlob* pixelShader = nullptr;
+  HRESULT hr = D3DCompileFromFile(L"vertex.hlsl", nullptr, nullptr, "main", "vs_5_0", 0, 0,
+      &vertexShader, nullptr);
+  if (FAILED(hr))
+    return hr;
+  hr = D3DCompileFromFile(L"pixel.hlsl", nullptr, nullptr, "main", "ps_5_0", 0, 0, &pixelShader,
+      nullptr);
+  if (FAILED(hr)) {
+    vertexShader->Release();
+    return hr;
+  }
+
+  // Pipeline state
+  D3D12_GRAPHICS_PIPELINE_STATE_DESC psoDesc = {};
+  psoDesc.pRootSignature = rootSignature;
+  psoDesc.VS.pShaderBytecode = vertexShader->GetBufferPointer();
+  psoDesc.VS.BytecodeLength = vertexShader->GetBufferSize();
+  psoDesc.PS.pShaderBytecode = pixelShader->GetBufferPointer();
+  psoDesc.PS.BytecodeLength = pixelShader->GetBufferSize();
+  setBlendState(psoDesc.BlendState);
+  psoDesc.SampleMask = UINT_MAX;
+  setRasterizerState(psoDesc.RasterizerState);
+  setDepthStencilState(psoDesc.DepthStencilState);
+  psoDesc.InputLayout.pInputElementDescs = nullptr;
+  psoDesc.InputLayout.NumElements = 0;
+  psoDesc.IBStripCutValue = D3D12_INDEX_BUFFER_STRIP_CUT_VALUE_DISABLED;
+  psoDesc.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
+  psoDesc.NumRenderTargets = 1;
+  psoDesc.RTVFormats[0] = DXGI_FORMAT_R8G8B8A8_UNORM;
+  psoDesc.SampleDesc.Count = 1;
+  psoDesc.SampleDesc.Quality = 0;
+
+  hr = device->CreateGraphicsPipelineState(&psoDesc, IID_PPV_ARGS(&pipelineState));
+
+  vertexShader->Release();
+  pixelShader->Release();
+
+  return hr;
+}
+}  // namespace Ngin
 void setBlendState(D3D12_BLEND_DESC& blendDesc) {
   blendDesc = {};
 
@@ -247,47 +293,3 @@ void setDepthStencilState(D3D12_DEPTH_STENCIL_DESC& depthStencilDesc) {
   depthStencilDesc.BackFace.StencilPassOp = D3D12_STENCIL_OP_KEEP;
   depthStencilDesc.BackFace.StencilFunc = D3D12_COMPARISON_FUNC_ALWAYS;
 }
-
-HRESULT RHI::CreatePipeline(ID3D12Device* device, ID3D12RootSignature* rootSignature,
-    ID3D12PipelineState*& pipelineState) {
-  ID3DBlob* vertexShader = nullptr;
-  ID3DBlob* pixelShader = nullptr;
-  HRESULT hr = D3DCompileFromFile(L"vertex.hlsl", nullptr, nullptr, "main", "vs_5_0", 0, 0,
-      &vertexShader, nullptr);
-  if (FAILED(hr))
-    return hr;
-  hr = D3DCompileFromFile(L"pixel.hlsl", nullptr, nullptr, "main", "ps_5_0", 0, 0, &pixelShader,
-      nullptr);
-  if (FAILED(hr)) {
-    vertexShader->Release();
-    return hr;
-  }
-
-  // Pipeline state
-  D3D12_GRAPHICS_PIPELINE_STATE_DESC psoDesc = {};
-  psoDesc.pRootSignature = rootSignature;
-  psoDesc.VS.pShaderBytecode = vertexShader->GetBufferPointer();
-  psoDesc.VS.BytecodeLength = vertexShader->GetBufferSize();
-  psoDesc.PS.pShaderBytecode = pixelShader->GetBufferPointer();
-  psoDesc.PS.BytecodeLength = pixelShader->GetBufferSize();
-  setBlendState(psoDesc.BlendState);
-  psoDesc.SampleMask = UINT_MAX;
-  setRasterizerState(psoDesc.RasterizerState);
-  setDepthStencilState(psoDesc.DepthStencilState);
-  psoDesc.InputLayout.pInputElementDescs = nullptr;
-  psoDesc.InputLayout.NumElements = 0;
-  psoDesc.IBStripCutValue = D3D12_INDEX_BUFFER_STRIP_CUT_VALUE_DISABLED;
-  psoDesc.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
-  psoDesc.NumRenderTargets = 1;
-  psoDesc.RTVFormats[0] = DXGI_FORMAT_R8G8B8A8_UNORM;
-  psoDesc.SampleDesc.Count = 1;
-  psoDesc.SampleDesc.Quality = 0;
-
-  hr = device->CreateGraphicsPipelineState(&psoDesc, IID_PPV_ARGS(&pipelineState));
-
-  vertexShader->Release();
-  pixelShader->Release();
-
-  return hr;
-}
-}  // namespace Ngin
