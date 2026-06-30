@@ -8,20 +8,20 @@ namespace Ngin {
 HRESULT RHI::Create(HWND hwnd, uint16_t windowWidth, uint16_t windowHeight, Scope<RHI>& rhi) {
   ID3D12Device* tempDevice = nullptr;
   ID3D12CommandQueue* tempCmdQueue = nullptr;
-  IDXGISwapChain* tempSwapChain = nullptr;
+  IDXGISwapChain4* tempSwapChain = nullptr;
   ID3D12CommandAllocator* tempCmdAlloc = nullptr;
   ID3D12GraphicsCommandList* tempCmdList = nullptr;
   ID3D12DescriptorHeap* tempRtvHeap = nullptr;
-  IDXGIFactory4* tempFactory = nullptr;
+  IDXGIFactory7* tempFactory = nullptr;
   ID3D12PipelineState* tempPipelineState = nullptr;
 
   ComScope<ID3D12Device> device = nullptr;
   ComScope<ID3D12CommandQueue> cmdQueue = nullptr;
-  ComScope<IDXGISwapChain> swapChain = nullptr;
+  ComScope<IDXGISwapChain4> swapChain = nullptr;
   ComScope<ID3D12CommandAllocator> cmdAlloc = nullptr;
   ComScope<ID3D12GraphicsCommandList> cmdList = nullptr;
   ComScope<ID3D12DescriptorHeap> rtvHeap = nullptr;
-  ComScope<IDXGIFactory4> factory = nullptr;
+  ComScope<IDXGIFactory7> factory = nullptr;
   ComScope<ID3D12RootSignature> rootSignature = nullptr;
   ComScope<ID3DBlob> signatureBlob = nullptr;
   ComScope<ID3DBlob> errorBlob = nullptr;
@@ -48,12 +48,12 @@ HRESULT RHI::Create(HWND hwnd, uint16_t windowWidth, uint16_t windowHeight, Scop
     return hr;
   cmdList.reset(tempCmdList);
 
-  hr = CreateDXGIFactory41(IID_PPV_ARGS(&tempFactory));
+  hr = CreateDXGIFactory(IID_PPV_ARGS(&tempFactory));
   if (FAILED(hr))
     return hr;
-  factory.reset(tempFactory4);
+  factory.reset(tempFactory);
 
-  hr = CreateSwapChain(tempFactory4, tempSwapChain, tempCmdQueue, windowWidth, windowHeight, hwnd,
+  hr = CreateSwapChain(tempFactory, tempSwapChain, tempCmdQueue, windowWidth, windowHeight, hwnd,
       true);
   if (FAILED(hr))
     return hr;
@@ -100,7 +100,7 @@ HRESULT RHI::CreateCommandList(ID3D12Device* device, ID3D12GraphicsCommandList*&
   return cmdList->Close();
 }
 
-HRESULT RHI::CreateSwapChain(IDXGIFactory4* factory, IDXGISwapChain3*& swapChain,
+HRESULT RHI::CreateSwapChain(IDXGIFactory7* factory, IDXGISwapChain4*& swapChain,
     ID3D12CommandQueue* cmdQueue, uint16_t windowWidth, uint16_t windowHeight, HWND hwnd,
     bool windowed) {
   DXGI_SWAP_CHAIN_DESC swapChainDesc = {};
@@ -114,21 +114,20 @@ HRESULT RHI::CreateSwapChain(IDXGIFactory4* factory, IDXGISwapChain3*& swapChain
   swapChainDesc.SampleDesc.Count = 1;
   swapChainDesc.Windowed = windowed;
 
-  IDXGISwapChain* tempSwapChain = nullptr;
-  HRESULT hr = factory->CreateSwapChain(cmdQueue, &swapChainDesc, &tempSwapChain);
+  IDXGISwapChain* baseSwapChain = nullptr;
+  HRESULT hr = factory->CreateSwapChain(cmdQueue, &swapChainDesc, &baseSwapChain);
   if (FAILED(hr))
     return hr;
 
-  hr = tempSwapChain->QueryInterface(IID_PPV_ARGS(&swapChain));
-  tempSwapChain->Release();
-  tempSwapChain = nullptr;
-  if (FAILED(hr))
-    return hr;
+  hr = baseSwapChain->QueryInterface(IID_PPV_ARGS(&swapChain));
+  baseSwapChain->Release();
+  baseSwapChain = nullptr;
+  return hr;
 
   return hr;
 }
 
-HRESULT RHI::CreateRtvHeap(ID3D12Device* device, IDXGISwapChain* swapChain,
+HRESULT RHI::CreateRtvHeap(ID3D12Device* device, IDXGISwapChain4* swapChain,
     ID3D12DescriptorHeap*& rtvHeap, List<ComScope<ID3D12Resource>>& renderTargets) {
   D3D12_DESCRIPTOR_HEAP_DESC rtvHeapDesc = {};
   rtvHeapDesc.NumDescriptors = 2;

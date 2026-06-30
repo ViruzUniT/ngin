@@ -24,7 +24,7 @@ links({
 })
 
 postbuildcommands({
-	"{COPY} ../ngin/shaders/*.hlsl %{cfg.targetdir}",
+	"{COPY} ../src/ngin/shaders/*.hlsl %{cfg.targetdir}",
 })
 
 filter("system:windows")
