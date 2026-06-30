@@ -188,64 +188,64 @@ HRESULT RHI::CreateSignature(ID3D12Device* device, ComScope<ID3D12RootSignature>
   return hr;
 }
 
-void set_blend_state(D3D12_BLEND_DESC& blend_desc) {
-  blend_desc = {};
+void setBlendState(D3D12_BLEND_DESC& blendDesc) {
+  blendDesc = {};
 
-  blend_desc.AlphaToCoverageEnable = FALSE;
-  blend_desc.IndependentBlendEnable = FALSE;
+  blendDesc.AlphaToCoverageEnable = FALSE;
+  blendDesc.IndependentBlendEnable = FALSE;
 
-  D3D12_RENDER_TARGET_BLEND_DESC default_render_target_blend_desc = {};
-  default_render_target_blend_desc.BlendEnable = FALSE;
-  default_render_target_blend_desc.LogicOpEnable = FALSE;
-  default_render_target_blend_desc.SrcBlend = D3D12_BLEND_ONE;
-  default_render_target_blend_desc.DestBlend = D3D12_BLEND_ZERO;
-  default_render_target_blend_desc.BlendOp = D3D12_BLEND_OP_ADD;
-  default_render_target_blend_desc.SrcBlendAlpha = D3D12_BLEND_ONE;
-  default_render_target_blend_desc.DestBlendAlpha = D3D12_BLEND_ZERO;
-  default_render_target_blend_desc.BlendOpAlpha = D3D12_BLEND_OP_ADD;
-  default_render_target_blend_desc.LogicOp = D3D12_LOGIC_OP_NOOP;
-  default_render_target_blend_desc.RenderTargetWriteMask = D3D12_COLOR_WRITE_ENABLE_ALL;
+  D3D12_RENDER_TARGET_BLEND_DESC defaultRenderTargetBlendDesc = {};
+  defaultRenderTargetBlendDesc.BlendEnable = FALSE;
+  defaultRenderTargetBlendDesc.LogicOpEnable = FALSE;
+  defaultRenderTargetBlendDesc.SrcBlend = D3D12_BLEND_ONE;
+  defaultRenderTargetBlendDesc.DestBlend = D3D12_BLEND_ZERO;
+  defaultRenderTargetBlendDesc.BlendOp = D3D12_BLEND_OP_ADD;
+  defaultRenderTargetBlendDesc.SrcBlendAlpha = D3D12_BLEND_ONE;
+  defaultRenderTargetBlendDesc.DestBlendAlpha = D3D12_BLEND_ZERO;
+  defaultRenderTargetBlendDesc.BlendOpAlpha = D3D12_BLEND_OP_ADD;
+  defaultRenderTargetBlendDesc.LogicOp = D3D12_LOGIC_OP_NOOP;
+  defaultRenderTargetBlendDesc.RenderTargetWriteMask = D3D12_COLOR_WRITE_ENABLE_ALL;
 
   for (UINT i = 0; i < D3D12_SIMULTANEOUS_RENDER_TARGET_COUNT; i++) {
-    blend_desc.RenderTarget[i] = default_render_target_blend_desc;
+    blendDesc.RenderTarget[i] = defaultRenderTargetBlendDesc;
   }
 }
 
-void set_rasterizer_state(D3D12_RASTERIZER_DESC& rasterizer_desc) {
-  rasterizer_desc = {};
+void setRasterizerState(D3D12_RASTERIZER_DESC& rasterizerDesc) {
+  rasterizerDesc = {};
 
-  rasterizer_desc.FillMode = D3D12_FILL_MODE_SOLID;
-  rasterizer_desc.CullMode = D3D12_CULL_MODE_BACK;
-  rasterizer_desc.FrontCounterClockwise = FALSE;
-  rasterizer_desc.DepthBias = D3D12_DEFAULT_DEPTH_BIAS;
-  rasterizer_desc.DepthBiasClamp = D3D12_DEFAULT_DEPTH_BIAS_CLAMP;
-  rasterizer_desc.SlopeScaledDepthBias = D3D12_DEFAULT_SLOPE_SCALED_DEPTH_BIAS;
-  rasterizer_desc.DepthClipEnable = TRUE;
-  rasterizer_desc.MultisampleEnable = FALSE;
-  rasterizer_desc.AntialiasedLineEnable = FALSE;
-  rasterizer_desc.ForcedSampleCount = 0;
-  rasterizer_desc.ConservativeRaster = D3D12_CONSERVATIVE_RASTERIZATION_MODE_OFF;
+  rasterizerDesc.FillMode = D3D12_FILL_MODE_SOLID;
+  rasterizerDesc.CullMode = D3D12_CULL_MODE_BACK;
+  rasterizerDesc.FrontCounterClockwise = FALSE;
+  rasterizerDesc.DepthBias = D3D12_DEFAULT_DEPTH_BIAS;
+  rasterizerDesc.DepthBiasClamp = D3D12_DEFAULT_DEPTH_BIAS_CLAMP;
+  rasterizerDesc.SlopeScaledDepthBias = D3D12_DEFAULT_SLOPE_SCALED_DEPTH_BIAS;
+  rasterizerDesc.DepthClipEnable = TRUE;
+  rasterizerDesc.MultisampleEnable = FALSE;
+  rasterizerDesc.AntialiasedLineEnable = FALSE;
+  rasterizerDesc.ForcedSampleCount = 0;
+  rasterizerDesc.ConservativeRaster = D3D12_CONSERVATIVE_RASTERIZATION_MODE_OFF;
 }
-void set_depth_stencil_state(D3D12_DEPTH_STENCIL_DESC& depth_stencil_desc) {
-  depth_stencil_desc = {};
+void setDepthStencilState(D3D12_DEPTH_STENCIL_DESC& depthStencilDesc) {
+  depthStencilDesc = {};
 
-  depth_stencil_desc.DepthEnable = FALSE;
-  depth_stencil_desc.DepthWriteMask = D3D12_DEPTH_WRITE_MASK_ALL;
-  depth_stencil_desc.DepthFunc = D3D12_COMPARISON_FUNC_GREATER;
+  depthStencilDesc.DepthEnable = FALSE;
+  depthStencilDesc.DepthWriteMask = D3D12_DEPTH_WRITE_MASK_ALL;
+  depthStencilDesc.DepthFunc = D3D12_COMPARISON_FUNC_GREATER;
 
-  depth_stencil_desc.StencilEnable = FALSE;
-  depth_stencil_desc.StencilReadMask = D3D12_DEFAULT_STENCIL_READ_MASK;
-  depth_stencil_desc.StencilWriteMask = D3D12_DEFAULT_STENCIL_WRITE_MASK;
+  depthStencilDesc.StencilEnable = FALSE;
+  depthStencilDesc.StencilReadMask = D3D12_DEFAULT_STENCIL_READ_MASK;
+  depthStencilDesc.StencilWriteMask = D3D12_DEFAULT_STENCIL_WRITE_MASK;
 
-  depth_stencil_desc.FrontFace.StencilFailOp = D3D12_STENCIL_OP_KEEP;
-  depth_stencil_desc.FrontFace.StencilDepthFailOp = D3D12_STENCIL_OP_KEEP;
-  depth_stencil_desc.FrontFace.StencilPassOp = D3D12_STENCIL_OP_KEEP;
-  depth_stencil_desc.FrontFace.StencilFunc = D3D12_COMPARISON_FUNC_ALWAYS;
+  depthStencilDesc.FrontFace.StencilFailOp = D3D12_STENCIL_OP_KEEP;
+  depthStencilDesc.FrontFace.StencilDepthFailOp = D3D12_STENCIL_OP_KEEP;
+  depthStencilDesc.FrontFace.StencilPassOp = D3D12_STENCIL_OP_KEEP;
+  depthStencilDesc.FrontFace.StencilFunc = D3D12_COMPARISON_FUNC_ALWAYS;
 
-  depth_stencil_desc.BackFace.StencilFailOp = D3D12_STENCIL_OP_KEEP;
-  depth_stencil_desc.BackFace.StencilDepthFailOp = D3D12_STENCIL_OP_KEEP;
-  depth_stencil_desc.BackFace.StencilPassOp = D3D12_STENCIL_OP_KEEP;
-  depth_stencil_desc.BackFace.StencilFunc = D3D12_COMPARISON_FUNC_ALWAYS;
+  depthStencilDesc.BackFace.StencilFailOp = D3D12_STENCIL_OP_KEEP;
+  depthStencilDesc.BackFace.StencilDepthFailOp = D3D12_STENCIL_OP_KEEP;
+  depthStencilDesc.BackFace.StencilPassOp = D3D12_STENCIL_OP_KEEP;
+  depthStencilDesc.BackFace.StencilFunc = D3D12_COMPARISON_FUNC_ALWAYS;
 }
 
 HRESULT RHI::CreatePipeline(ID3D12Device* device, ID3D12RootSignature* rootSignature,
@@ -270,10 +270,10 @@ HRESULT RHI::CreatePipeline(ID3D12Device* device, ID3D12RootSignature* rootSigna
   psoDesc.VS.BytecodeLength = vertexShader->GetBufferSize();
   psoDesc.PS.pShaderBytecode = pixelShader->GetBufferPointer();
   psoDesc.PS.BytecodeLength = pixelShader->GetBufferSize();
-  set_blend_state(psoDesc.BlendState);
+  setBlendState(psoDesc.BlendState);
   psoDesc.SampleMask = UINT_MAX;
-  set_rasterizer_state(psoDesc.RasterizerState);
-  set_depth_stencil_state(psoDesc.DepthStencilState);
+  setRasterizerState(psoDesc.RasterizerState);
+  setDepthStencilState(psoDesc.DepthStencilState);
   psoDesc.InputLayout.pInputElementDescs = nullptr;
   psoDesc.InputLayout.NumElements = 0;
   psoDesc.IBStripCutValue = D3D12_INDEX_BUFFER_STRIP_CUT_VALUE_DISABLED;
