@@ -4,9 +4,6 @@
 #include <ngin/pch.h>
 
 #include <utility>
-
-#include "ngin/rhi_dx12/shader.h"
-
 namespace Ngin {
 struct RHI : NonCopyable {
  public:
@@ -45,7 +42,7 @@ struct RHI : NonCopyable {
       ComScope<IDXGISwapChain> swapChain, ComScope<ID3D12CommandAllocator> cmdAlloc,
       ComScope<ID3D12CommandList> cmdList, ComScope<ID3D12DescriptorHeap> rtvHeap,
       ComScope<IDXGIFactory> factory, ComScope<ID3D12RootSignature> rootSignature,
-      List<ComScope<ID3D12Resource>> renderTargets) {
+      ComScope<ID3D12PipelineState> pipelineState, List<ComScope<ID3D12Resource>> renderTargets) {
     Device = std::move(device);
     CmdQueue = std::move(cmdQueue);
     SwapChain = std::move(swapChain);
@@ -55,6 +52,7 @@ struct RHI : NonCopyable {
     Factory = std::move(factory);
     RootSignature = std::move(rootSignature);
     RenderTargets = std::move(renderTargets);
+    PipelineState = std::move(pipelineState);
   }
 
  public:
@@ -66,6 +64,7 @@ struct RHI : NonCopyable {
   ComScope<ID3D12DescriptorHeap> RtvHeap;
   ComScope<IDXGIFactory> Factory;
   ComScope<ID3D12RootSignature> RootSignature;
+  ComScope<ID3D12PipelineState> PipelineState;
   List<ComScope<ID3D12Resource>> RenderTargets;
 
  private:

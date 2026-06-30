@@ -10,6 +10,7 @@ HRESULT RHI::Create(HWND hwnd, uint16_t windowWidth, uint16_t windowHeight, Scop
   ID3D12GraphicsCommandList* tempCmdList = nullptr;
   ID3D12DescriptorHeap* tempRtvHeap = nullptr;
   IDXGIFactory* tempFactory = nullptr;
+  ID3D12PipelineState* tempPipeline = nullptr;
 
   ComScope<ID3D12Device> device = nullptr;
   ComScope<ID3D12CommandQueue> cmdQueue = nullptr;
@@ -21,6 +22,7 @@ HRESULT RHI::Create(HWND hwnd, uint16_t windowWidth, uint16_t windowHeight, Scop
   ComScope<ID3D12RootSignature> rootSignature = nullptr;
   ComScope<ID3DBlob> signatureBlob = nullptr;
   ComScope<ID3DBlob> errorBlob = nullptr;
+  ComScope<ID3D12PipelineState> pipelineState = nullptr;
   List<ComScope<ID3D12Resource>> renderTargets = {};
 
   HRESULT hr = D3D12CreateDevice(nullptr, D3D_FEATURE_LEVEL_12_2, IID_PPV_ARGS(&tempDevice));
