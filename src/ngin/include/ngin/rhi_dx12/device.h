@@ -1,5 +1,6 @@
 #pragma once
 #include <d3d12.h>
+#include <dxgi1_6.h>
 #include <ngin/core/utility.h>
 #include <ngin/pch.h>
 
@@ -41,9 +42,9 @@ struct RHI : NonCopyable {
 
  private:
   RHI(ComScope<ID3D12Device> device, ComScope<ID3D12CommandQueue> cmdQueue,
-      ComScope<IDXGISwapChain> swapChain, ComScope<ID3D12CommandAllocator> cmdAlloc,
+      ComScope<IDXGISwapChain4> swapChain, ComScope<ID3D12CommandAllocator> cmdAlloc,
       ComScope<ID3D12CommandList> cmdList, ComScope<ID3D12DescriptorHeap> rtvHeap,
-      ComScope<IDXGIFactory> factory, ComScope<ID3D12RootSignature> rootSignature,
+      ComScope<IDXGIFactory7> factory, ComScope<ID3D12RootSignature> rootSignature,
       ComScope<ID3D12PipelineState> pipelineState, List<ComScope<ID3D12Resource>> renderTargets) {
     Device = std::move(device);
     CmdQueue = std::move(cmdQueue);
@@ -60,11 +61,11 @@ struct RHI : NonCopyable {
  public:
   ComScope<ID3D12Device> Device;
   ComScope<ID3D12CommandQueue> CmdQueue;
-  ComScope<IDXGISwapChain> SwapChain;
+  ComScope<IDXGISwapChain4> SwapChain;
   ComScope<ID3D12CommandAllocator> CmdAlloc;
   ComScope<ID3D12CommandList> CmdList;
   ComScope<ID3D12DescriptorHeap> RtvHeap;
-  ComScope<IDXGIFactory> Factory;
+  ComScope<IDXGIFactory7> Factory;
   ComScope<ID3D12RootSignature> RootSignature;
   ComScope<ID3D12PipelineState> PipelineState;
   List<ComScope<ID3D12Resource>> RenderTargets;
@@ -74,10 +75,10 @@ struct RHI : NonCopyable {
   static HRESULT CreateCommandAllocator(ID3D12Device* device, ID3D12CommandAllocator*& cmdAlloc);
   static HRESULT CreateCommandList(ID3D12Device* device, ID3D12GraphicsCommandList*& cmdList,
       ID3D12CommandAllocator* cmdAlloc);
-  static HRESULT CreateSwapChain(IDXGIFactory* factory, IDXGISwapChain*& swapChain,
+  static HRESULT CreateSwapChain(IDXGIFactory7* factory, IDXGISwapChain4*& swapChain,
       ID3D12CommandQueue* cmdQueue, uint16_t windowWidth, uint16_t windowHeight, HWND hwnd,
       bool windowed);
-  static HRESULT CreateRtvHeap(ID3D12Device* device, IDXGISwapChain* swapChain,
+  static HRESULT CreateRtvHeap(ID3D12Device* device, IDXGISwapChain4* swapChain,
       ID3D12DescriptorHeap*& rtvHeap, List<ComScope<ID3D12Resource>>& renderTargets);
   static HRESULT CreateSignature(ID3D12Device* device,
       ComScope<ID3D12RootSignature>& rootSignature, ComScope<ID3DBlob>& signatureBlob,
