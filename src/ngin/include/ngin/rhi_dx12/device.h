@@ -4,7 +4,6 @@
 #include <ngin/pch.h>
 
 #include <utility>
-#include <vector>
 
 namespace Ngin {
 struct RHI : NonCopyable {
@@ -49,6 +48,14 @@ struct RHI : NonCopyable {
     Factory = std::move(factory);
   }
 
+  ~RHI() {
+    for (auto& renderTarget : RenderTargets) {
+      if (renderTarget) {
+        renderTarget->Release();
+      }
+    }
+  }
+
  public:
   ComScope<ID3D12Device> Device;
   ComScope<ID3D12CommandQueue> CmdQueue;
@@ -68,6 +75,8 @@ struct RHI : NonCopyable {
       ID3D12CommandQueue* cmdQueue, uint16_t windowWidth, uint16_t windowHeight, HWND hwnd,
       bool windowed);
   static HRESULT CreateRtvHeap(ID3D12Device* device, IDXGISwapChain* swapChain,
-      ID3D12DescriptorHeap*& rtvHeap);
+      ID3D12DescriptorHeap*& rtvHeap, List<ID3D12Resource*>& renderTargets);
+  static HRESULT CreateSignature(ID3D12Device* device, ID3D12RootSignature* rootSignature,
+      ID3DBlob* signatureBlob, ID3DBlob* errorBlob);
 };
 }  // namespace Ngin

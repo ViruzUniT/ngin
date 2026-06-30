@@ -17,6 +17,7 @@ HRESULT RHI::Create(HWND hwnd, uint16_t windowWidth, uint16_t windowHeight, Scop
   ComScope<ID3D12GraphicsCommandList> cmdList = nullptr;
   ComScope<ID3D12DescriptorHeap> rtvHeap = nullptr;
   ComScope<IDXGIFactory> factory = nullptr;
+  List<ID3D12Resource*> renderTargets;
 
   HRESULT hr = D3D12CreateDevice(nullptr, D3D_FEATURE_LEVEL_12_2, IID_PPV_ARGS(&tempDevice));
   if (FAILED(hr))
@@ -49,7 +50,7 @@ HRESULT RHI::Create(HWND hwnd, uint16_t windowWidth, uint16_t windowHeight, Scop
     return hr;
   swapChain.reset(tempSwapChain);
 
-  hr = CreateRtvHeap(tempDevice, tempSwapChain, tempRtvHeap);
+  hr = CreateRtvHeap(tempDevice, tempSwapChain, tempRtvHeap, renderTargets);
   if (FAILED(hr))
     return hr;
   rtvHeap.reset(tempRtvHeap);
@@ -143,4 +144,7 @@ HRESULT RHI::CreateRtvHeap(ID3D12Device* device, IDXGISwapChain* swapChain,
   }
   return hr;
 }
+
+HRESULT RHI::CreateSignature(ID3D12Device* device, ID3D12RootSignature* rootSignature,
+    ID3DBlob* signatureBlob, ID3DBlob* errorBlob) {}
 }  // namespace Ngin
