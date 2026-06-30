@@ -20,6 +20,7 @@ struct RHI : NonCopyable {
     Factory = std::move(other.Factory);
     RootSignature = std::move(other.RootSignature);
     RenderTargets = std::move(other.RenderTargets);
+    PipelineState = std::move(other.PipelineState);
   }
   RHI& operator=(RHI&& other) {
     if (this == &other)
@@ -34,6 +35,7 @@ struct RHI : NonCopyable {
     Factory = std::move(other.Factory);
     RootSignature = std::move(other.RootSignature);
     RenderTargets = std::move(other.RenderTargets);
+    PipelineState = std::move(other.PipelineState);
     return *this;
   }
 

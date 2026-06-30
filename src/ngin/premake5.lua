@@ -14,6 +14,7 @@ files({
 	"**.cpp",
 	"**.h",
 	"**.c",
+	"shaders/**.hlsl",
 })
 
 includedirs({
