@@ -67,7 +67,7 @@ HRESULT RHI::Create(HWND hwnd, uint16_t windowWidth, uint16_t windowHeight, Scop
 
   auto tempRHI = Scope<RHI>(new RHI(std::move(device), std::move(cmdQueue), std::move(swapChain),
       std::move(cmdAlloc), std::move(cmdList), std::move(rtvHeap), std::move(factory),
-      std::move(rootSignature), std::move(renderTargets)));
+      std::move(rootSignature), std::move(pipelineState), std::move(renderTargets)));
   rhi = std::move(tempRHI);
   return hr;
 }
