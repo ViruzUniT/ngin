@@ -45,7 +45,7 @@ No test framework yet. Keep the console-based vertical slice working:
 ./build.ps1 run STAGING
 ```
 
-Run `./build.ps1 run RELEASE` when touching dev UI guards or config logic. Current status: Win32 window creation and explicit RHI lifetime/cleanup ownership are in place, including owned DX12 backbuffers and root signature storage. Needed next steps: finish DX12 RHI object creation, then implement the renderer layer that owns initialization, frame rendering, resize handling, and shutdown. Next milestones: minimal DX12 clear-color rendering, then hide private engine/backend details from programs that use Ngin, then ImGui for `DEBUG` and `STAGING`.
+Run `./build.ps1 run RELEASE` when touching dev UI guards or config logic. Current status: Win32 window creation and explicit RHI lifetime/cleanup ownership are in place, including owned DX12 backbuffers and root signature storage. Needed next steps: finish DX12 RHI object creation, then implement the renderer layer that owns initialization, frame rendering, resize handling, and shutdown. The render loop must include fence-backed frame flow: wait when needed, reset allocator, reset command list with the PSO, record commands, close, execute, present, and signal. Root-signature serialization blobs are temporary and do not need RHI storage unless diagnostics or shader/reflection workflows require them later. Next milestones: minimal DX12 clear-color rendering, then hide private engine/backend details from programs that use Ngin, then ImGui for `DEBUG` and `STAGING`.
 
 ## Commit & Pull Request Guidelines
 

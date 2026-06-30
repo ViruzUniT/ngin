@@ -12,8 +12,8 @@ HRESULT RHI::Create(HWND hwnd, uint16_t windowWidth, uint16_t windowHeight, Scop
   ID3D12CommandAllocator* tempCmdAlloc = nullptr;
   ID3D12GraphicsCommandList* tempCmdList = nullptr;
   ID3D12DescriptorHeap* tempRtvHeap = nullptr;
-  IDXGIFactory* tempFactory = nullptr;
-  ID3D12PipelineState* tempPipeline = nullptr;
+  IDXGIFactory4* tempFactory = nullptr;
+  ID3D12PipelineState* tempPipelineState = nullptr;
 
   ComScope<ID3D12Device> device = nullptr;
   ComScope<ID3D12CommandQueue> cmdQueue = nullptr;
@@ -21,7 +21,7 @@ HRESULT RHI::Create(HWND hwnd, uint16_t windowWidth, uint16_t windowHeight, Scop
   ComScope<ID3D12CommandAllocator> cmdAlloc = nullptr;
   ComScope<ID3D12GraphicsCommandList> cmdList = nullptr;
   ComScope<ID3D12DescriptorHeap> rtvHeap = nullptr;
-  ComScope<IDXGIFactory> factory = nullptr;
+  ComScope<IDXGIFactory4> factory = nullptr;
   ComScope<ID3D12RootSignature> rootSignature = nullptr;
   ComScope<ID3DBlob> signatureBlob = nullptr;
   ComScope<ID3DBlob> errorBlob = nullptr;
@@ -48,12 +48,12 @@ HRESULT RHI::Create(HWND hwnd, uint16_t windowWidth, uint16_t windowHeight, Scop
     return hr;
   cmdList.reset(tempCmdList);
 
-  hr = CreateDXGIFactory1(IID_PPV_ARGS(&tempFactory));
+  hr = CreateDXGIFactory41(IID_PPV_ARGS(&tempFactory));
   if (FAILED(hr))
     return hr;
-  factory.reset(tempFactory);
+  factory.reset(tempFactory4);
 
-  hr = CreateSwapChain(tempFactory, tempSwapChain, tempCmdQueue, windowWidth, windowHeight, hwnd,
+  hr = CreateSwapChain(tempFactory4, tempSwapChain, tempCmdQueue, windowWidth, windowHeight, hwnd,
       true);
   if (FAILED(hr))
     return hr;
@@ -67,6 +67,11 @@ HRESULT RHI::Create(HWND hwnd, uint16_t windowWidth, uint16_t windowHeight, Scop
   hr = CreateSignature(tempDevice, rootSignature, signatureBlob, errorBlob);
   if (FAILED(hr))
     return hr;
+
+  hr = CreatePipeline(device.get(), rootSignature.get(), tempPipelineState);
+  if (FAILED(hr))
+    return hr;
+  pipelineState.reset(tempPipelineState);
 
   auto tempRHI = Scope<RHI>(new RHI(std::move(device), std::move(cmdQueue), std::move(swapChain),
       std::move(cmdAlloc), std::move(cmdList), std::move(rtvHeap), std::move(factory),
@@ -83,11 +88,7 @@ HRESULT RHI::CreateCommandQueue(ID3D12Device* device, ID3D12CommandQueue*& cmdQu
 }
 
 HRESULT RHI::CreateCommandAllocator(ID3D12Device* device, ID3D12CommandAllocator*& cmdAlloc) {
-  HRESULT hr =
-      device->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_DIRECT, IID_PPV_ARGS(&cmdAlloc));
-  if (FAILED(hr))
-    return hr;
-  return cmdAlloc->Reset();
+  return device->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_DIRECT, IID_PPV_ARGS(&cmdAlloc));
 }
 
 HRESULT RHI::CreateCommandList(ID3D12Device* device, ID3D12GraphicsCommandList*& cmdList,
@@ -99,7 +100,7 @@ HRESULT RHI::CreateCommandList(ID3D12Device* device, ID3D12GraphicsCommandList*&
   return cmdList->Close();
 }
 
-HRESULT RHI::CreateSwapChain(IDXGIFactory* factory, IDXGISwapChain*& swapChain,
+HRESULT RHI::CreateSwapChain(IDXGIFactory4* factory, IDXGISwapChain3*& swapChain,
     ID3D12CommandQueue* cmdQueue, uint16_t windowWidth, uint16_t windowHeight, HWND hwnd,
     bool windowed) {
   DXGI_SWAP_CHAIN_DESC swapChainDesc = {};
@@ -193,18 +194,20 @@ HRESULT RHI::CreateSignature(ID3D12Device* device, ComScope<ID3D12RootSignature>
 
 HRESULT RHI::CreatePipeline(ID3D12Device* device, ID3D12RootSignature* rootSignature,
     ID3D12PipelineState*& pipelineState) {
-  ID3DBlob* vertexShader = nullptr;
-  ID3DBlob* pixelShader = nullptr;
+  ID3DBlob* tempVertexShader = nullptr;
+  ID3DBlob* tempPixelShader = nullptr;
+  ComScope<ID3DBlob> vertexShader = nullptr;
+  ComScope<ID3DBlob> pixelShader = nullptr;
   HRESULT hr = D3DCompileFromFile(L"vertex.hlsl", nullptr, nullptr, "main", "vs_5_0", 0, 0,
-      &vertexShader, nullptr);
+      &tempVertexShader, nullptr);
   if (FAILED(hr))
     return hr;
-  hr = D3DCompileFromFile(L"pixel.hlsl", nullptr, nullptr, "main", "ps_5_0", 0, 0, &pixelShader,
-      nullptr);
-  if (FAILED(hr)) {
-    vertexShader->Release();
+  vertexShader.reset(tempVertexShader);
+  hr = D3DCompileFromFile(L"pixel.hlsl", nullptr, nullptr, "main", "ps_5_0", 0, 0,
+      &tempPixelShader, nullptr);
+  if (FAILED(hr))
     return hr;
-  }
+  pixelShader.reset(tempPixelShader);
 
   // Pipeline state
   D3D12_GRAPHICS_PIPELINE_STATE_DESC psoDesc = {};
@@ -227,9 +230,6 @@ HRESULT RHI::CreatePipeline(ID3D12Device* device, ID3D12RootSignature* rootSigna
   psoDesc.SampleDesc.Quality = 0;
 
   hr = device->CreateGraphicsPipelineState(&psoDesc, IID_PPV_ARGS(&pipelineState));
-
-  vertexShader->Release();
-  pixelShader->Release();
 
   return hr;
 }
