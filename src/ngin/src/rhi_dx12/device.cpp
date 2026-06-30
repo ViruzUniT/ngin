@@ -114,7 +114,7 @@ HRESULT RHI::CreateSwapChain(IDXGIFactory* factory, IDXGISwapChain*& swapChain,
 }
 
 HRESULT RHI::CreateRtvHeap(ID3D12Device* device, IDXGISwapChain* swapChain,
-    ID3D12DescriptorHeap*& rtvHeap) {
+    ID3D12DescriptorHeap*& rtvHeap, List<ID3D12Resource*>& renderTargets) {
   D3D12_DESCRIPTOR_HEAP_DESC rtvHeapDesc = {};
   rtvHeapDesc.NumDescriptors = 2;
   rtvHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_RTV;
@@ -123,29 +123,23 @@ HRESULT RHI::CreateRtvHeap(ID3D12Device* device, IDXGISwapChain* swapChain,
   if (FAILED(hr))
     return hr;
 
-  ID3D12Resource* renderTargets[2] = {};
+  renderTargets.reserve(2);
   UINT rtvIncrementSize =
       device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
 
-  {
-    D3D12_CPU_DESCRIPTOR_HANDLE rtvHandle(rtvHeap->GetCPUDescriptorHandleForHeapStart());
-    for (UINT i = 0; i < 2; i++) {
-      hr = swapChain->GetBuffer(i, IID_PPV_ARGS(&renderTargets[i]));
-      if (FAILED(hr)) {
-        for (auto& renderTarget : renderTargets) {
-          if (renderTarget)
-            renderTarget->Release();
-        }
-        return hr;
+  D3D12_CPU_DESCRIPTOR_HANDLE rtvHandle(rtvHeap->GetCPUDescriptorHandleForHeapStart());
+  for (UINT i = 0; i < 2; i++) {
+    hr = swapChain->GetBuffer(i, IID_PPV_ARGS(&renderTargets[i]));
+    if (FAILED(hr)) {
+      for (auto& renderTarget : renderTargets) {
+        if (renderTarget)
+          renderTarget->Release();
       }
-
-      device->CreateRenderTargetView(renderTargets[i], nullptr, rtvHandle);
-      rtvHandle.ptr += rtvIncrementSize;
+      return hr;
     }
-  }
-  for (auto& renderTarget : renderTargets) {
-    if (renderTarget)
-      renderTarget->Release();
+
+    device->CreateRenderTargetView(renderTargets[i], nullptr, rtvHandle);
+    rtvHandle.ptr += rtvIncrementSize;
   }
   return hr;
 }

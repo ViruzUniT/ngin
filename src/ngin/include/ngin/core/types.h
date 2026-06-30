@@ -2,6 +2,7 @@
 
 #include <cstddef>
 #include <memory>
+#include <vector>
 
 struct ComReleaser {
   template <typename T>
@@ -23,5 +24,8 @@ using ComScope = std::unique_ptr<T, ComReleaser>;
 
 template <typename T>
 using Ref = std::shared_ptr<T>;
+
+template <typename T>
+using List = std::vector<T>;
 
 }  // namespace Ngin

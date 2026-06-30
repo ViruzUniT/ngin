@@ -4,6 +4,7 @@
 #include <ngin/pch.h>
 
 #include <utility>
+#include <vector>
 
 namespace Ngin {
 struct RHI : NonCopyable {
@@ -56,6 +57,7 @@ struct RHI : NonCopyable {
   ComScope<ID3D12CommandList> CmdList;
   ComScope<ID3D12DescriptorHeap> RtvHeap;
   ComScope<IDXGIFactory> Factory;
+  List<ID3D12Resource*> RenderTargets;
 
  private:
   static HRESULT CreateCommandQueue(ID3D12Device* device, ID3D12CommandQueue*& cmdQueue);
