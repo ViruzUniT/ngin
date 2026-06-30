@@ -34,6 +34,14 @@ struct RHI : NonCopyable {
     return *this;
   }
 
+  ~RHI() {
+    for (auto& renderTarget : RenderTargets) {
+      if (renderTarget) {
+        renderTarget->Release();
+      }
+    }
+  }
+
  private:
   RHI(ComScope<ID3D12Device> device, ComScope<ID3D12CommandQueue> cmdQueue,
       ComScope<IDXGISwapChain> swapChain, ComScope<ID3D12CommandAllocator> cmdAlloc,
@@ -46,14 +54,6 @@ struct RHI : NonCopyable {
     CmdList = std::move(cmdList);
     RtvHeap = std::move(rtvHeap);
     Factory = std::move(factory);
-  }
-
-  ~RHI() {
-    for (auto& renderTarget : RenderTargets) {
-      if (renderTarget) {
-        renderTarget->Release();
-      }
-    }
   }
 
  public:

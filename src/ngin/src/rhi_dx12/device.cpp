@@ -9,6 +9,9 @@ HRESULT RHI::Create(HWND hwnd, uint16_t windowWidth, uint16_t windowHeight, Scop
   ID3D12GraphicsCommandList* tempCmdList = nullptr;
   ID3D12DescriptorHeap* tempRtvHeap = nullptr;
   IDXGIFactory* tempFactory = nullptr;
+  ID3D12RootSignature* tempRootSignature = nullptr;
+  ID3DBlob* tempSignatureBlob = nullptr;
+  ID3DBlob* tempErrorBlob = nullptr;
 
   ComScope<ID3D12Device> device = nullptr;
   ComScope<ID3D12CommandQueue> cmdQueue = nullptr;
@@ -17,7 +20,10 @@ HRESULT RHI::Create(HWND hwnd, uint16_t windowWidth, uint16_t windowHeight, Scop
   ComScope<ID3D12GraphicsCommandList> cmdList = nullptr;
   ComScope<ID3D12DescriptorHeap> rtvHeap = nullptr;
   ComScope<IDXGIFactory> factory = nullptr;
-  List<ID3D12Resource*> renderTargets;
+  ComScope<ID3D12RootSignature> rootSignature = nullptr;
+  ComScope<ID3DBlob> signatureBlob = nullptr;
+  ComScope<ID3DBlob> errorBlob = nullptr;
+  List<ID3D12Resource*> renderTargets = {};
 
   HRESULT hr = D3D12CreateDevice(nullptr, D3D_FEATURE_LEVEL_12_2, IID_PPV_ARGS(&tempDevice));
   if (FAILED(hr))
@@ -55,9 +61,15 @@ HRESULT RHI::Create(HWND hwnd, uint16_t windowWidth, uint16_t windowHeight, Scop
     return hr;
   rtvHeap.reset(tempRtvHeap);
 
-  auto tempRHI =
-      std::unique_ptr<RHI>(new RHI(std::move(device), std::move(cmdQueue), std::move(swapChain),
-          std::move(cmdAlloc), std::move(cmdList), std::move(rtvHeap), std::move(factory)));
+  hr = CreateSignature(tempDevice, tempRootSignature, tempSignatureBlob, tempErrorBlob);
+  errorBlob.reset(tempErrorBlob);
+  if (FAILED(hr))
+    return hr;
+  rootSignature.reset(tempRootSignature);
+  signatureBlob.reset(tempSignatureBlob);
+
+  auto tempRHI = Scope<RHI>(new RHI(std::move(device), std::move(cmdQueue), std::move(swapChain),
+      std::move(cmdAlloc), std::move(cmdList), std::move(rtvHeap), std::move(factory)));
   rhi = std::move(tempRHI);
   return hr;
 }
@@ -146,5 +158,31 @@ HRESULT RHI::CreateRtvHeap(ID3D12Device* device, IDXGISwapChain* swapChain,
 }
 
 HRESULT RHI::CreateSignature(ID3D12Device* device, ID3D12RootSignature* rootSignature,
-    ID3DBlob* signatureBlob, ID3DBlob* errorBlob) {}
+    ID3DBlob* signatureBlob, ID3DBlob* errorBlob) {
+  D3D12_ROOT_PARAMETER rootParameters[1] = {};
+  rootParameters[0].ParameterType = D3D12_ROOT_PARAMETER_TYPE_32BIT_CONSTANTS;
+  rootParameters[0].Constants.Num32BitValues = 1;
+  rootParameters[0].Constants.ShaderRegister = 0;
+  rootParameters[0].Constants.RegisterSpace = 0;
+  rootParameters[0].ShaderVisibility = D3D12_SHADER_VISIBILITY_VERTEX;
+
+  D3D12_ROOT_SIGNATURE_DESC rootSignatureDesc = {};
+  rootSignatureDesc.NumParameters = _countof(rootParameters);
+  rootSignatureDesc.pParameters = rootParameters;
+  rootSignatureDesc.NumStaticSamplers = 0;
+  rootSignatureDesc.pStaticSamplers = nullptr;
+  rootSignatureDesc.Flags = D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT;
+
+  HRESULT hr = D3D12SerializeRootSignature(&rootSignatureDesc, D3D_ROOT_SIGNATURE_VERSION_1,
+      &signatureBlob, &errorBlob);
+  if (FAILED(hr))
+    return hr;
+
+  hr = device->CreateRootSignature(0, signatureBlob->GetBufferPointer(),
+      signatureBlob->GetBufferSize(), IID_PPV_ARGS(&rootSignature));
+  if (FAILED(hr))
+    signatureBlob->Release();
+
+  return hr;
+}
 }  // namespace Ngin
