@@ -1,8 +1,6 @@
 #include <d3dcompiler.h>
 #include <ngin/rhi_dx12/device.h>
 
-#include "ngin/rhi_dx12/shader.h"
-
 namespace Ngin {
 HRESULT RHI::Create(HWND hwnd, uint16_t windowWidth, uint16_t windowHeight, Scope<RHI>& rhi) {
   ID3D12Device* tempDevice = nullptr;
@@ -249,41 +247,44 @@ void set_depth_stencil_state(D3D12_DEPTH_STENCIL_DESC& depth_stencil_desc) {
 }
 
 HRESULT RHI::CreatePipeline(ID3D12Device* device, ID3D12RootSignature* rootSignature,
-    List<Shader> shaders) {
-  ID3DBlob* vertex_shader = nullptr;
-  ID3DBlob* pixel_shader = nullptr;
-  HRESULT hr = D3DCompileFromFile(L"shader.hlsl", nullptr, nullptr, "VSMain", "vs_5_0", 0, 0,
-      &vertex_shader, nullptr);
-  hr = D3DCompileFromFile(L"shader.hlsl", nullptr, nullptr, "PSMain", "ps_5_0", 0, 0,
-      &pixel_shader, nullptr);
+    ID3D12PipelineState*& pipelineState) {
+  ID3DBlob* vertexShader = nullptr;
+  ID3DBlob* pixelShader = nullptr;
+  HRESULT hr = D3DCompileFromFile(L"vertex.hlsl", nullptr, nullptr, "main", "vs_5_0", 0, 0,
+      &vertexShader, nullptr);
+  if (FAILED(hr))
+    return hr;
+  hr = D3DCompileFromFile(L"pixel.hlsl", nullptr, nullptr, "main", "ps_5_0", 0, 0, &pixelShader,
+      nullptr);
+  if (FAILED(hr)) {
+    vertexShader->Release();
+    return hr;
+  }
 
   // Pipeline state
-  D3D12_GRAPHICS_PIPELINE_STATE_DESC pso_desc = {};
-  pso_desc.pRootSignature = rootSignature;
-  pso_desc.VS.pShaderBytecode = vertex_shader->GetBufferPointer();
-  pso_desc.VS.BytecodeLength = vertex_shader->GetBufferSize();
-  pso_desc.PS.pShaderBytecode = pixel_shader->GetBufferPointer();
-  pso_desc.PS.BytecodeLength = pixel_shader->GetBufferSize();
-  set_blend_state(pso_desc.BlendState);
-  pso_desc.SampleMask = UINT_MAX;
-  set_rasterizer_state(pso_desc.RasterizerState);
-  set_depth_stencil_state(pso_desc.DepthStencilState);
-  pso_desc.InputLayout.pInputElementDescs = nullptr;
-  pso_desc.InputLayout.NumElements = 0;
-  pso_desc.IBStripCutValue = D3D12_INDEX_BUFFER_STRIP_CUT_VALUE_DISABLED;
-  pso_desc.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
-  pso_desc.NumRenderTargets = 1;
-  pso_desc.RTVFormats[0] = DXGI_FORMAT_R8G8B8A8_UNORM;
-  pso_desc.SampleDesc.Count = 1;
-  pso_desc.SampleDesc.Quality = 0;
+  D3D12_GRAPHICS_PIPELINE_STATE_DESC psoDesc = {};
+  psoDesc.pRootSignature = rootSignature;
+  psoDesc.VS.pShaderBytecode = vertexShader->GetBufferPointer();
+  psoDesc.VS.BytecodeLength = vertexShader->GetBufferSize();
+  psoDesc.PS.pShaderBytecode = pixelShader->GetBufferPointer();
+  psoDesc.PS.BytecodeLength = pixelShader->GetBufferSize();
+  set_blend_state(psoDesc.BlendState);
+  psoDesc.SampleMask = UINT_MAX;
+  set_rasterizer_state(psoDesc.RasterizerState);
+  set_depth_stencil_state(psoDesc.DepthStencilState);
+  psoDesc.InputLayout.pInputElementDescs = nullptr;
+  psoDesc.InputLayout.NumElements = 0;
+  psoDesc.IBStripCutValue = D3D12_INDEX_BUFFER_STRIP_CUT_VALUE_DISABLED;
+  psoDesc.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
+  psoDesc.NumRenderTargets = 1;
+  psoDesc.RTVFormats[0] = DXGI_FORMAT_R8G8B8A8_UNORM;
+  psoDesc.SampleDesc.Count = 1;
+  psoDesc.SampleDesc.Quality = 0;
 
-  ID3D12PipelineState* pipeline_state = nullptr;
-  hr = device->CreateGraphicsPipelineState(&pso_desc, IID_PPV_ARGS(&pipeline_state));
+  hr = device->CreateGraphicsPipelineState(&psoDesc, IID_PPV_ARGS(&pipelineState));
 
-  vertex_shader->Release();
-  vertex_shader = nullptr;
-  pixel_shader->Release();
-  pixel_shader = nullptr;
+  vertexShader->Release();
+  pixelShader->Release();
 
   return hr;
 }
