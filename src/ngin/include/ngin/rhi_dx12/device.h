@@ -82,6 +82,6 @@ struct RHI : NonCopyable {
       ComScope<ID3D12RootSignature>& rootSignature, ComScope<ID3DBlob>& signatureBlob,
       ComScope<ID3DBlob>& errorBlob);
   static HRESULT CreatePipeline(ID3D12Device* device, ID3D12RootSignature* rootSignature,
-      List<Shader> shaders);
+      ID3D12PipelineState*& pipelineState);
 };
 }  // namespace Ngin
