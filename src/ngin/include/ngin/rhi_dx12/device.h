@@ -19,6 +19,8 @@ struct RHI : NonCopyable {
     CmdList = std::move(other.CmdList);
     RtvHeap = std::move(other.RtvHeap);
     Factory = std::move(other.Factory);
+    RootSignature = std::move(other.RootSignature);
+    RenderTargets = std::move(other.RenderTargets);
   }
   RHI& operator=(RHI&& other) {
     if (this == &other)
@@ -31,22 +33,17 @@ struct RHI : NonCopyable {
     CmdList = std::move(other.CmdList);
     RtvHeap = std::move(other.RtvHeap);
     Factory = std::move(other.Factory);
+    RootSignature = std::move(other.RootSignature);
+    RenderTargets = std::move(other.RenderTargets);
     return *this;
-  }
-
-  ~RHI() {
-    for (auto& renderTarget : RenderTargets) {
-      if (renderTarget) {
-        renderTarget->Release();
-      }
-    }
   }
 
  private:
   RHI(ComScope<ID3D12Device> device, ComScope<ID3D12CommandQueue> cmdQueue,
       ComScope<IDXGISwapChain> swapChain, ComScope<ID3D12CommandAllocator> cmdAlloc,
       ComScope<ID3D12CommandList> cmdList, ComScope<ID3D12DescriptorHeap> rtvHeap,
-      ComScope<IDXGIFactory> factory) {
+      ComScope<IDXGIFactory> factory, ComScope<ID3D12RootSignature> rootSignature,
+      List<ComScope<ID3D12Resource>> renderTargets) {
     Device = std::move(device);
     CmdQueue = std::move(cmdQueue);
     SwapChain = std::move(swapChain);
@@ -54,6 +51,8 @@ struct RHI : NonCopyable {
     CmdList = std::move(cmdList);
     RtvHeap = std::move(rtvHeap);
     Factory = std::move(factory);
+    RootSignature = std::move(rootSignature);
+    RenderTargets = std::move(renderTargets);
   }
 
  public:
@@ -64,7 +63,8 @@ struct RHI : NonCopyable {
   ComScope<ID3D12CommandList> CmdList;
   ComScope<ID3D12DescriptorHeap> RtvHeap;
   ComScope<IDXGIFactory> Factory;
-  List<ID3D12Resource*> RenderTargets;
+  ComScope<ID3D12RootSignature> RootSignature;
+  List<ComScope<ID3D12Resource>> RenderTargets;
 
  private:
   static HRESULT CreateCommandQueue(ID3D12Device* device, ID3D12CommandQueue*& cmdQueue);
@@ -75,8 +75,9 @@ struct RHI : NonCopyable {
       ID3D12CommandQueue* cmdQueue, uint16_t windowWidth, uint16_t windowHeight, HWND hwnd,
       bool windowed);
   static HRESULT CreateRtvHeap(ID3D12Device* device, IDXGISwapChain* swapChain,
-      ID3D12DescriptorHeap*& rtvHeap, List<ID3D12Resource*>& renderTargets);
-  static HRESULT CreateSignature(ID3D12Device* device, ID3D12RootSignature* rootSignature,
-      ID3DBlob* signatureBlob, ID3DBlob* errorBlob);
+      ID3D12DescriptorHeap*& rtvHeap, List<ComScope<ID3D12Resource>>& renderTargets);
+  static HRESULT CreateSignature(ID3D12Device* device,
+      ComScope<ID3D12RootSignature>& rootSignature, ComScope<ID3DBlob>& signatureBlob,
+      ComScope<ID3DBlob>& errorBlob);
 };
 }  // namespace Ngin

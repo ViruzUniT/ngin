@@ -9,9 +9,6 @@ HRESULT RHI::Create(HWND hwnd, uint16_t windowWidth, uint16_t windowHeight, Scop
   ID3D12GraphicsCommandList* tempCmdList = nullptr;
   ID3D12DescriptorHeap* tempRtvHeap = nullptr;
   IDXGIFactory* tempFactory = nullptr;
-  ID3D12RootSignature* tempRootSignature = nullptr;
-  ID3DBlob* tempSignatureBlob = nullptr;
-  ID3DBlob* tempErrorBlob = nullptr;
 
   ComScope<ID3D12Device> device = nullptr;
   ComScope<ID3D12CommandQueue> cmdQueue = nullptr;
@@ -23,7 +20,7 @@ HRESULT RHI::Create(HWND hwnd, uint16_t windowWidth, uint16_t windowHeight, Scop
   ComScope<ID3D12RootSignature> rootSignature = nullptr;
   ComScope<ID3DBlob> signatureBlob = nullptr;
   ComScope<ID3DBlob> errorBlob = nullptr;
-  List<ID3D12Resource*> renderTargets = {};
+  List<ComScope<ID3D12Resource>> renderTargets = {};
 
   HRESULT hr = D3D12CreateDevice(nullptr, D3D_FEATURE_LEVEL_12_2, IID_PPV_ARGS(&tempDevice));
   if (FAILED(hr))
@@ -61,15 +58,13 @@ HRESULT RHI::Create(HWND hwnd, uint16_t windowWidth, uint16_t windowHeight, Scop
     return hr;
   rtvHeap.reset(tempRtvHeap);
 
-  hr = CreateSignature(tempDevice, tempRootSignature, tempSignatureBlob, tempErrorBlob);
-  errorBlob.reset(tempErrorBlob);
+  hr = CreateSignature(tempDevice, rootSignature, signatureBlob, errorBlob);
   if (FAILED(hr))
     return hr;
-  rootSignature.reset(tempRootSignature);
-  signatureBlob.reset(tempSignatureBlob);
 
   auto tempRHI = Scope<RHI>(new RHI(std::move(device), std::move(cmdQueue), std::move(swapChain),
-      std::move(cmdAlloc), std::move(cmdList), std::move(rtvHeap), std::move(factory)));
+      std::move(cmdAlloc), std::move(cmdList), std::move(rtvHeap), std::move(factory),
+      std::move(rootSignature), std::move(renderTargets)));
   rhi = std::move(tempRHI);
   return hr;
 }
@@ -127,7 +122,7 @@ HRESULT RHI::CreateSwapChain(IDXGIFactory* factory, IDXGISwapChain*& swapChain,
 }
 
 HRESULT RHI::CreateRtvHeap(ID3D12Device* device, IDXGISwapChain* swapChain,
-    ID3D12DescriptorHeap*& rtvHeap, List<ID3D12Resource*>& renderTargets) {
+    ID3D12DescriptorHeap*& rtvHeap, List<ComScope<ID3D12Resource>>& renderTargets) {
   D3D12_DESCRIPTOR_HEAP_DESC rtvHeapDesc = {};
   rtvHeapDesc.NumDescriptors = 2;
   rtvHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_RTV;
@@ -136,29 +131,26 @@ HRESULT RHI::CreateRtvHeap(ID3D12Device* device, IDXGISwapChain* swapChain,
   if (FAILED(hr))
     return hr;
 
-  renderTargets.reserve(2);
+  renderTargets.resize(2);
   UINT rtvIncrementSize =
       device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
 
   D3D12_CPU_DESCRIPTOR_HANDLE rtvHandle(rtvHeap->GetCPUDescriptorHandleForHeapStart());
   for (UINT i = 0; i < 2; i++) {
-    hr = swapChain->GetBuffer(i, IID_PPV_ARGS(&renderTargets[i]));
-    if (FAILED(hr)) {
-      for (auto& renderTarget : renderTargets) {
-        if (renderTarget)
-          renderTarget->Release();
-      }
+    ID3D12Resource* tempRenderTarget = nullptr;
+    hr = swapChain->GetBuffer(i, IID_PPV_ARGS(&tempRenderTarget));
+    if (FAILED(hr))
       return hr;
-    }
 
-    device->CreateRenderTargetView(renderTargets[i], nullptr, rtvHandle);
+    renderTargets[i].reset(tempRenderTarget);
+    device->CreateRenderTargetView(renderTargets[i].get(), nullptr, rtvHandle);
     rtvHandle.ptr += rtvIncrementSize;
   }
   return hr;
 }
 
-HRESULT RHI::CreateSignature(ID3D12Device* device, ID3D12RootSignature* rootSignature,
-    ID3DBlob* signatureBlob, ID3DBlob* errorBlob) {
+HRESULT RHI::CreateSignature(ID3D12Device* device, ComScope<ID3D12RootSignature>& rootSignature,
+    ComScope<ID3DBlob>& signatureBlob, ComScope<ID3DBlob>& errorBlob) {
   D3D12_ROOT_PARAMETER rootParameters[1] = {};
   rootParameters[0].ParameterType = D3D12_ROOT_PARAMETER_TYPE_32BIT_CONSTANTS;
   rootParameters[0].Constants.Num32BitValues = 1;
@@ -173,16 +165,23 @@ HRESULT RHI::CreateSignature(ID3D12Device* device, ID3D12RootSignature* rootSign
   rootSignatureDesc.pStaticSamplers = nullptr;
   rootSignatureDesc.Flags = D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT;
 
+  ID3DBlob* tempSignatureBlob = nullptr;
+  ID3DBlob* tempErrorBlob = nullptr;
+
   HRESULT hr = D3D12SerializeRootSignature(&rootSignatureDesc, D3D_ROOT_SIGNATURE_VERSION_1,
-      &signatureBlob, &errorBlob);
+      &tempSignatureBlob, &tempErrorBlob);
+  signatureBlob.reset(tempSignatureBlob);
+  errorBlob.reset(tempErrorBlob);
   if (FAILED(hr))
     return hr;
 
+  ID3D12RootSignature* tempRootSignature = nullptr;
   hr = device->CreateRootSignature(0, signatureBlob->GetBufferPointer(),
-      signatureBlob->GetBufferSize(), IID_PPV_ARGS(&rootSignature));
+      signatureBlob->GetBufferSize(), IID_PPV_ARGS(&tempRootSignature));
   if (FAILED(hr))
-    signatureBlob->Release();
+    return hr;
 
+  rootSignature.reset(tempRootSignature);
   return hr;
 }
 }  // namespace Ngin
