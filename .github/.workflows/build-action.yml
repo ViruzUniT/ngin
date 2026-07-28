@@ -1,0 +1,45 @@
+name: Build the project Sandbox on Windows
+run-name: ${{ github.actor }} Is building the Sandbox
+on: [pull_request]
+jobs:
+  build-the-sandbox:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install LLVM
+        shell: pwsh
+        run: |
+          choco install llvm -y
+          echo "C:\Program Files\LLVM\bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+
+      - name: Verify LLVM
+        shell: pwsh
+        run: |
+          clang++ --version
+
+      - name: Install Make
+        shell: pwsh
+        run: |
+          choco install make -y
+
+      - name: Verify Make
+        shell: pwsh
+        run: |
+          make --version
+
+      - name: Generate makefiles
+        shell: pwsh
+        run: |
+          .\build.ps1 gen
+
+      - name: Build the project
+        shell: pwsh
+        run: |
+          .\build.ps1 build RELEASE
+
+      - name: Publish artifacts
+        uses: actions/upload-artifacts@v4
+        with:
+          name: Sandbox
+          path: bin
