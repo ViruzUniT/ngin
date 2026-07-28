@@ -31,8 +31,6 @@ filter("system:windows")
 links({
 	"user32",
 	"gdi32",
-	"dxgi",
-	"dxguid",
 	"d3d12",
 })
 
@@ -43,12 +41,21 @@ filter("configurations:DEBUG")
 defines({ "NGIN_DEBUG", "NGIN_DEV_UI" })
 runtime("Debug")
 symbols("on")
+filter("system:windows")
+links({
+	"dxgi",
+	"dxguid",
+})
 
 filter("configurations:STAGING")
 defines({ "NGIN_STAGING", "NGIN_DEV_UI" })
 runtime("Release")
 optimize("Speed")
 symbols("on")
+links({
+	"dxgi",
+	"dxguid",
+})
 
 filter("configurations:RELEASE")
 defines({ "NGIN_RELEASE" })
