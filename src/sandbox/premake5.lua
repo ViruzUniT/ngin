@@ -31,6 +31,9 @@ filter("system:windows")
 links({
 	"user32",
 	"gdi32",
+	"dxgi",
+	"dxguid",
+	"d3d12",
 })
 
 filter("system:windows")
