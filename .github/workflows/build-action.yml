@@ -7,9 +7,6 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Set up MSVC environment
-        uses: ilammy/msvc-dev-cmd@v1
-
       - name: Install LLVM
         shell: pwsh
         run: |
