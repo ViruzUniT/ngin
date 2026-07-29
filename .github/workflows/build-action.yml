@@ -27,6 +27,16 @@ jobs:
         shell: pwsh
         run: |
           make --version
+      - name: Check compiler
+        shell: pwsh
+        run: |
+          clang++ --version
+          where clang++
+          where gcc
+          where g++
+          echo "CC=$env:CC"
+          echo "CXX=$env:CXX"
+
       - name: Install Premake
         shell: pwsh
         run: |
