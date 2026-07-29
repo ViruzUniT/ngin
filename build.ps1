@@ -48,7 +48,7 @@ elseif($operation -eq "build") {
 
   if(Test-Path "build/Makefile") {
     if(Get-Command make -ErrorAction SilentlyContinue) {
-      make -C build config=$makeConfig
+      make SHELL=cmd.exe -C build config=$makeConfig
       $built = $true
     }
     elseif(Get-Command mingw32-make -ErrorAction SilentlyContinue) {

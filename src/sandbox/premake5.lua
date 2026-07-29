@@ -33,6 +33,7 @@ links({
 	"gdi32",
 	"d3d12",
 })
+toolset("clang")
 
 filter("system:windows")
 systemversion("latest")

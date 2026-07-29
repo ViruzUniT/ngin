@@ -28,6 +28,7 @@ links({
 	"user32",
 	"gdi32",
 })
+toolset("clang")
 
 filter("configurations:DEBUG")
 defines({ "NGIN_DEBUG", "NGIN_DEV_UI" })
