@@ -7,13 +7,6 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Install LLVM
-        shell: pwsh
-        run: |
-          choco install llvm -y 
-          echo "C:\Program Files\LLVM\bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
-          RefreshEnv.cmd
-
       - name: Verify LLVM
         shell: pwsh
         run: |
@@ -57,7 +50,6 @@ jobs:
       - name: Build the project
         shell: pwsh
         run: |
-          $env:SHELL = "cmd.exe"
           .\build.ps1 build RELEASE
 
       - name: Publish artifacts
