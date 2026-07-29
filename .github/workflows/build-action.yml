@@ -18,7 +18,6 @@ jobs:
         shell: pwsh
         run: |
           clang++ --version
-          where.exe cl
 
       - name: Install Make
         shell: pwsh
