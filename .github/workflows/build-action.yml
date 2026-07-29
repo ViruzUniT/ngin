@@ -57,6 +57,7 @@ jobs:
       - name: Build the project
         shell: pwsh
         run: |
+          $env:SHELL = "cmd.exe"
           .\build.ps1 build RELEASE
 
       - name: Publish artifacts
