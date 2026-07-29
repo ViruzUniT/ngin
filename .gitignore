@@ -72,3 +72,4 @@ Testing/
 bin/
 bin-int/
 .luarc.json
+.clangd
