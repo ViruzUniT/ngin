@@ -23,7 +23,6 @@ links({
 	"Ngin",
 })
 
-shell("cmd")
 postbuildcommands({
 	"{COPY} ../src/ngin/shaders/*.hlsl %{cfg.targetdir}",
 })
