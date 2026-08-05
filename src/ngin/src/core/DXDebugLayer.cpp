@@ -4,7 +4,8 @@
 bool DXDebugLayer::Init() {
 #ifdef NGIN_DEBUG
   ID3D12Debug5* temp3Debug = nullptr;
-  if (SUCCEEDED(D3D12GetDebugInterface(IID_PPV_ARGS(&temp3Debug)))) {
+  HRESULT res = D3D12GetDebugInterface(IID_PPV_ARGS(&temp3Debug));
+  if (SUCCEEDED(res)) {
     m_d3d12Debug.reset(temp3Debug);
     temp3Debug = nullptr;
 
@@ -17,7 +18,11 @@ bool DXDebugLayer::Init() {
 
       m_dxgiDebug->EnableLeakTrackingForThread();
       return true;
+    } else {
+      Ngin::logDebug(std::format("DXGIDebug Interface could not be created: {}", res));
     }
+  } else {
+    Ngin::logDebug(std::format("D3D12Debug Interface could not be created: {} ", res));
   }
 #endif
   return false;
