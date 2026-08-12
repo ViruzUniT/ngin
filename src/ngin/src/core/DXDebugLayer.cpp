@@ -1,3 +1,4 @@
+#if defined(_WIN32)
 #include <ngin/core/DXDebugLayer.h>
 #include <ngin/core/base.h>
 
@@ -38,3 +39,4 @@ void DXDebugLayer::Shutdown() {
   m_d3d12Debug.reset(nullptr);
 #endif
 }
+#endif
