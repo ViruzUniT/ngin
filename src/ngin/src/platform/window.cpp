@@ -4,7 +4,7 @@
 
 #include <format>
 
-Ngin::Window::Properties props;
+Ngin::Window::Window props;
 
 LRESULT CALLBACK WndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam) {
   switch (message) {
@@ -28,14 +28,12 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam) 
 
 namespace Ngin {
 namespace Window {
-ErrorCode Create(Properties const& windowProps) {
-  props = windowProps;
-
+ErrorCode Create(Window& windowProps) {
   WNDCLASS wc;
   HINSTANCE instance = GetModuleHandleA(nullptr);
 
   wc.style = CS_VREDRAW | CS_HREDRAW;
-  wc.lpszClassName = props.className.c_str();
+  wc.lpszClassName = windowProps.className.c_str();
   wc.lpfnWndProc = WndProc;
   wc.hInstance = instance;
   wc.cbClsExtra = 0;
@@ -51,14 +49,19 @@ ErrorCode Create(Properties const& windowProps) {
     return ErrorCode::PlatformError;
   }
 
-  props.windowHandle =
-      CreateWindowExA(0, props.className.c_str(), props.name.c_str(), WS_OVERLAPPEDWINDOW,
-          CW_USEDEFAULT, CW_USEDEFAULT, props.width, props.height, NULL, NULL, instance, NULL);
+  windowProps.windowHandle = CreateWindowExA(0, windowProps.className.c_str(),
+      windowProps.name.c_str(), WS_OVERLAPPEDWINDOW, CW_USEDEFAULT, CW_USEDEFAULT,
+      windowProps.width, windowProps.height, NULL, NULL, instance, NULL);
 
-  if (props.windowHandle == nullptr) {
+  if (windowProps.windowHandle == nullptr) {
     Ngin::logError(std::format("Creating Window failed: Couldnt CreateWindowEx Error code {}",
         GetLastError()));
     return ErrorCode::PlatformError;
+  }
+
+  if (FAILED(RHI::Create(windowProps.windowHandle, windowProps.width, windowProps.height,
+          windowProps.rhi))) {
+    return ErrorCode::GraphicsError;
   }
 
   return ErrorCode::None;

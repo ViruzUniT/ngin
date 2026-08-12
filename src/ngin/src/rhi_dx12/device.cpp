@@ -28,55 +28,65 @@ HRESULT RHI::Create(HWND hwnd, uint16_t windowWidth, uint16_t windowHeight, Scop
   ComScope<ID3D12PipelineState> pipelineState = nullptr;
   List<ComScope<ID3D12Resource>> renderTargets = {};
 
-  HRESULT hr = D3D12CreateDevice(nullptr, D3D_FEATURE_LEVEL_12_2, IID_PPV_ARGS(&tempDevice));
+  Ngin::logDebug("Creating Device");
+  HRESULT hr = D3D12CreateDevice(nullptr, D3D_FEATURE_LEVEL_12_1, IID_PPV_ARGS(&tempDevice));
   if (FAILED(hr))
     return hr;
   device.reset(tempDevice);
 
+  Ngin::logDebug("Creating Cmd Queue");
   hr = CreateCommandQueue(tempDevice, tempCmdQueue);
   if (FAILED(hr))
     return hr;
   cmdQueue.reset(tempCmdQueue);
 
+  Ngin::logDebug("Creating Cmd Alloc");
   hr = CreateCommandAllocator(tempDevice, tempCmdAlloc);
   if (FAILED(hr))
     return hr;
   cmdAlloc.reset(tempCmdAlloc);
 
+  Ngin::logDebug("Creating Cmd List");
   hr = CreateCommandList(tempDevice, tempCmdList, tempCmdAlloc);
   if (FAILED(hr))
     return hr;
   cmdList.reset(tempCmdList);
 
+  Ngin::logDebug("Creating Factory");
   hr = CreateDXGIFactory(IID_PPV_ARGS(&tempFactory));
   if (FAILED(hr))
     return hr;
   factory.reset(tempFactory);
 
+  Ngin::logDebug("Creating Swap chain");
   hr = CreateSwapChain(tempFactory, tempSwapChain, tempCmdQueue, windowWidth, windowHeight, hwnd,
       true);
   if (FAILED(hr))
     return hr;
   swapChain.reset(tempSwapChain);
 
+  Ngin::logDebug("Creating Rtv Heap");
   hr = CreateRtvHeap(tempDevice, tempSwapChain, tempRtvHeap, renderTargets);
   if (FAILED(hr))
     return hr;
   rtvHeap.reset(tempRtvHeap);
 
+  Ngin::logDebug("Creating Sig");
   hr = CreateSignature(tempDevice, rootSignature, signatureBlob, errorBlob);
   if (FAILED(hr))
     return hr;
 
+  Ngin::logDebug("Creating Pipeline");
   hr = CreatePipeline(device.get(), rootSignature.get(), tempPipelineState);
   if (FAILED(hr))
     return hr;
   pipelineState.reset(tempPipelineState);
 
-  auto tempRHI = Scope<RHI>(new RHI(std::move(device), std::move(cmdQueue), std::move(swapChain),
+  if (rhi != nullptr)
+    rhi.reset();
+  rhi = Scope<RHI>(new RHI(std::move(device), std::move(cmdQueue), std::move(swapChain),
       std::move(cmdAlloc), std::move(cmdList), std::move(rtvHeap), std::move(factory),
       std::move(rootSignature), std::move(pipelineState), std::move(renderTargets)));
-  rhi = std::move(tempRHI);
   return hr;
 }
 
@@ -101,28 +111,27 @@ HRESULT RHI::CreateCommandList(ID3D12Device* device, ID3D12GraphicsCommandList*&
 }
 
 HRESULT RHI::CreateSwapChain(IDXGIFactory7* factory, IDXGISwapChain4*& swapChain,
-    ID3D12CommandQueue* cmdQueue, uint16_t windowWidth, uint16_t windowHeight, HWND hwnd,
-    bool windowed) {
-  DXGI_SWAP_CHAIN_DESC swapChainDesc = {};
-  swapChainDesc.BufferCount = 2;
-  swapChainDesc.BufferDesc.Width = windowWidth;
-  swapChainDesc.BufferDesc.Height = windowHeight;
-  swapChainDesc.BufferDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
-  swapChainDesc.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;
-  swapChainDesc.SwapEffect = DXGI_SWAP_EFFECT_DISCARD;
-  swapChainDesc.OutputWindow = hwnd;
-  swapChainDesc.SampleDesc.Count = 1;
-  swapChainDesc.Windowed = windowed;
+    ID3D12CommandQueue* cmdQueue, uint16_t width, uint16_t height, HWND hwnd, bool windowed) {
+  DXGI_SWAP_CHAIN_DESC1 desc = {};
+  desc.Width = width;
+  desc.Height = height;
+  desc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+  desc.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;
+  desc.BufferCount = 2;
+  desc.SampleDesc.Count = 1;
+  desc.SampleDesc.Quality = 0;
+  desc.SwapEffect = DXGI_SWAP_EFFECT_FLIP_DISCARD;
+  desc.Scaling = DXGI_SCALING_STRETCH;
+  desc.AlphaMode = DXGI_ALPHA_MODE_IGNORE;
 
-  IDXGISwapChain* baseSwapChain = nullptr;
-  HRESULT hr = factory->CreateSwapChain(cmdQueue, &swapChainDesc, &baseSwapChain);
+  IDXGISwapChain1* tempSwapChain = nullptr;
+  HRESULT hr =
+      factory->CreateSwapChainForHwnd(cmdQueue, hwnd, &desc, nullptr, nullptr, &tempSwapChain);
   if (FAILED(hr))
     return hr;
 
-  hr = baseSwapChain->QueryInterface(IID_PPV_ARGS(&swapChain));
-  baseSwapChain->Release();
-  baseSwapChain = nullptr;
-  return hr;
+  hr = tempSwapChain->QueryInterface(IID_PPV_ARGS(&swapChain));
+  tempSwapChain->Release();
 
   return hr;
 }
@@ -197,6 +206,18 @@ HRESULT RHI::CreatePipeline(ID3D12Device* device, ID3D12RootSignature* rootSigna
   ID3DBlob* tempPixelShader = nullptr;
   ComScope<ID3DBlob> vertexShader = nullptr;
   ComScope<ID3DBlob> pixelShader = nullptr;
+
+  wchar_t cwd[MAX_PATH];
+  GetCurrentDirectoryW(MAX_PATH, cwd);
+
+  int size = WideCharToMultiByte(CP_UTF8, 0, cwd, -1, nullptr, 0, nullptr, nullptr);
+
+  std::string utf8(size - 1, '\0');
+
+  WideCharToMultiByte(CP_UTF8, 0, cwd, -1, utf8.data(), size, nullptr, nullptr);
+
+  logDebug(utf8);
+
   HRESULT hr = D3DCompileFromFile(L"vertex.hlsl", nullptr, nullptr, "main", "vs_5_0", 0, 0,
       &tempVertexShader, nullptr);
   if (FAILED(hr))
