@@ -1,5 +1,6 @@
 #pragma once
 
+#if defined(_WIN32)
 #include <d3d12.h>
 #include <dxgi1_6.h>
 #include <ngin/pch.h>
@@ -30,3 +31,4 @@ class DXDebugLayer : Ngin::NonCopyable {
  private:
   DXDebugLayer() = default;
 };
+#endif
