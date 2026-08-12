@@ -82,11 +82,13 @@ HRESULT RHI::Create(HWND hwnd, uint16_t windowWidth, uint16_t windowHeight, Scop
     return hr;
   pipelineState.reset(tempPipelineState);
 
-  if (rhi != nullptr)
+  Ngin::logDebug("Creating RHI");
+  if (rhi != nullptr && rhi.get() != nullptr)
     rhi.reset();
   rhi = Scope<RHI>(new RHI(std::move(device), std::move(cmdQueue), std::move(swapChain),
       std::move(cmdAlloc), std::move(cmdList), std::move(rtvHeap), std::move(factory),
       std::move(rootSignature), std::move(pipelineState), std::move(renderTargets)));
+
   return hr;
 }
 
