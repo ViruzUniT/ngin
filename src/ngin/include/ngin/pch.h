@@ -19,5 +19,6 @@
 #define NOMINMAX
 #endif
 
+#include <ngin/platform/windows.h>
 #include <windows.h>
 #endif

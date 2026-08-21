@@ -32,6 +32,9 @@ links({
 	"user32",
 	"gdi32",
 	"d3d12",
+	"dxgi",
+	"dxguid",
+	"d3dcompiler",
 })
 toolset("clang")
 

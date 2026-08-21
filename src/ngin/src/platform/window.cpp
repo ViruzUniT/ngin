@@ -4,8 +4,6 @@
 
 #include <format>
 
-Ngin::Window::Properties props;
-
 LRESULT CALLBACK WndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam) {
   switch (message) {
     case WM_CREATE:
@@ -13,12 +11,12 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam) 
       return 0;
     case WM_CLOSE:
       DestroyWindow(hwnd);
-      props.windowHandle = 0;
+      // props.windowHandle = 0;
       return 0;
 
     case WM_DESTROY:
       PostQuitMessage(0);
-      props.windowHandle = 0;
+      // props.windowHandle = 0;
       return 0;
 
     default:
@@ -28,14 +26,12 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam) 
 
 namespace Ngin {
 namespace Window {
-ErrorCode Create(Properties const& windowProps) {
-  props = windowProps;
-
+ErrorCode Create(Window& windowProps) {
   WNDCLASS wc;
   HINSTANCE instance = GetModuleHandleA(nullptr);
 
   wc.style = CS_VREDRAW | CS_HREDRAW;
-  wc.lpszClassName = props.className.c_str();
+  wc.lpszClassName = windowProps.className.c_str();
   wc.lpfnWndProc = WndProc;
   wc.hInstance = instance;
   wc.cbClsExtra = 0;
@@ -51,20 +47,32 @@ ErrorCode Create(Properties const& windowProps) {
     return ErrorCode::PlatformError;
   }
 
-  props.windowHandle =
-      CreateWindowExA(0, props.className.c_str(), props.name.c_str(), WS_OVERLAPPEDWINDOW,
-          CW_USEDEFAULT, CW_USEDEFAULT, props.width, props.height, NULL, NULL, instance, NULL);
+  windowProps.windowHandle = CreateWindowExA(0, windowProps.className.c_str(),
+      windowProps.name.c_str(), WS_OVERLAPPEDWINDOW, CW_USEDEFAULT, CW_USEDEFAULT,
+      windowProps.width, windowProps.height, NULL, NULL, instance, NULL);
 
-  if (props.windowHandle == nullptr) {
+  if (windowProps.windowHandle == nullptr) {
     Ngin::logError(std::format("Creating Window failed: Couldnt CreateWindowEx Error code {}",
         GetLastError()));
     return ErrorCode::PlatformError;
   }
 
+  HRESULT hr = RHI::Create(windowProps.windowHandle, windowProps.width, windowProps.height,
+      windowProps.rhi);
+
+  if (FAILED(hr)) {
+    if (hr == -2147024894) {
+      Ngin::logError("Shader file could not be found");
+      return ErrorCode::FileNotFound;
+    }
+    Ngin::logError(std::format("RHI creation failed: {}", hr));
+    return ErrorCode::GraphicsError;
+  }
+
   return ErrorCode::None;
 }
 
-ErrorCode SetShow(CmdShow shouldShow) {
+ErrorCode SetShow(Window& props, CmdShow shouldShow) {
   if (props.windowHandle == 0) {
     return ErrorCode::PlatformError;
   }
@@ -72,7 +80,7 @@ ErrorCode SetShow(CmdShow shouldShow) {
   return ErrorCode::None;
 }
 
-ErrorCode Update() {
+ErrorCode Update(Window& props) {
   if (props.windowHandle == 0) {
     return ErrorCode::PlatformError;
   }

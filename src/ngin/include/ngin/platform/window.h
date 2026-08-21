@@ -3,6 +3,8 @@
 #include <ngin/pch.h>
 #include <stdint.h>
 
+#include "ngin/rhi_dx12/device.h"
+
 namespace Ngin {
 namespace Window {
 enum CmdShow {
@@ -11,20 +13,21 @@ enum CmdShow {
   Show = 5,
 };
 
-struct Properties {
+struct Window {
   uint16_t width;
   uint16_t height;
   std::string name;
   std::string className = "NginWindow";
   HWND windowHandle = nullptr;
+  Scope<RHI> rhi;
 
-  Properties(uint16_t width, uint16_t height, std::string_view name, std::string_view className)
+  Window(uint16_t width, uint16_t height, std::string_view name, std::string_view className)
       : width(width), height(height), name(name), className(className) {}
-  Properties() = default;
+  Window() = default;
 };
 
-ErrorCode Create(Properties const& props);
-ErrorCode SetShow(CmdShow shouldShow);
-ErrorCode Update();
+ErrorCode Create(Window& props);
+ErrorCode SetShow(Window& props, CmdShow shouldShow);
+ErrorCode Update(Window& props);
 }  // namespace Window
 }  // namespace Ngin

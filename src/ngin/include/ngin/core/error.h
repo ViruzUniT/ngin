@@ -3,7 +3,7 @@
 #include <string_view>
 namespace Ngin {
 
-enum class ErrorCode {
+enum ErrorCode {
   None = 0,
   Unknown,
   InvalidArgument,
