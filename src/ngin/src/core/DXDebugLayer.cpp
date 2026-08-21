@@ -4,6 +4,7 @@
 
 bool DXDebugLayer::Init() {
 #ifdef NGIN_DEBUG
+  Ngin::DebugOutputToStdout dbg;
   ID3D12Debug5* temp3Debug = nullptr;
   HRESULT res = D3D12GetDebugInterface(IID_PPV_ARGS(&temp3Debug));
   if (SUCCEEDED(res)) {
@@ -31,6 +32,7 @@ bool DXDebugLayer::Init() {
 void DXDebugLayer::Shutdown() {
 #ifdef NGIN_DEBUG
   if (m_dxgiDebug) {
+    Ngin::DebugOutputToStdout dbg;
     OutputDebugStringW(L"DXGI Reports living device objects:\n");
     m_dxgiDebug->ReportLiveObjects(DXGI_DEBUG_ALL,
         DXGI_DEBUG_RLO_FLAGS(DXGI_DEBUG_RLO_DETAIL | DXGI_DEBUG_RLO_IGNORE_INTERNAL));
