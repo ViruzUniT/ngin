@@ -27,7 +27,7 @@ struct Window {
 };
 
 ErrorCode Create(Window& props);
-ErrorCode SetShow(CmdShow shouldShow);
-ErrorCode Update();
+ErrorCode SetShow(Window& props, CmdShow shouldShow);
+ErrorCode Update(Window& props);
 }  // namespace Window
 }  // namespace Ngin

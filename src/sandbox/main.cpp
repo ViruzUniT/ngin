@@ -5,17 +5,18 @@
 
 int main() {
   DXDebugLayer::Get().Init();
+  Ngin::logInfo("Sandbox starting.");
   {
-    Ngin::logInfo("Sandbox starting.");
     auto window = Ngin::Window::Window(1200, 720, "test", "test");
-    if (Ngin::Window::Create(window) != Ngin::ErrorCode::None) {
-      Ngin::logFatal("Window could not be created");
+    Ngin::ErrorCode err = Ngin::Window::Create(window);
+    if (err != Ngin::ErrorCode::None) {
+      Ngin::logFatal(std::format("Window could not be created {}", static_cast<int>(err)));
       return 1;
     }
 
-    Ngin::Window::SetShow(Ngin::Window::CmdShow::ShowNormal);
+    Ngin::Window::SetShow(window, Ngin::Window::CmdShow::ShowNormal);
     Ngin::logInfo("Sandbox started.");
-    while (Ngin::Window::Update() == Ngin::ErrorCode::None) {
+    while (Ngin::Window::Update(window) == Ngin::ErrorCode::None) {
       // Sleep(1);
     }
     Ngin::logInfo("Sandbox terminating.");

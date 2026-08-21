@@ -77,7 +77,7 @@ struct RHI : NonCopyable {
   static HRESULT CreateCommandList(ID3D12Device* device, ID3D12GraphicsCommandList*& cmdList,
       ID3D12CommandAllocator* cmdAlloc);
   static HRESULT CreateSwapChain(IDXGIFactory7* factory, IDXGISwapChain4*& swapChain,
-      ID3D12CommandQueue* cmdQueue, uint16_t width, uint16_t height, HWND hwnd, bool windowed);
+      ID3D12CommandQueue* cmdQueue, uint16_t width, uint16_t geight, HWND hwnd, bool windowed);
   static HRESULT CreateRtvHeap(ID3D12Device* device, IDXGISwapChain4* swapChain,
       ID3D12DescriptorHeap*& rtvHeap, List<ComScope<ID3D12Resource>>& renderTargets);
   static HRESULT CreateSignature(ID3D12Device* device,

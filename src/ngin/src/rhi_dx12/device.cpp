@@ -209,24 +209,14 @@ HRESULT RHI::CreatePipeline(ID3D12Device* device, ID3D12RootSignature* rootSigna
   ComScope<ID3DBlob> vertexShader = nullptr;
   ComScope<ID3DBlob> pixelShader = nullptr;
 
-  wchar_t cwd[MAX_PATH];
-  GetCurrentDirectoryW(MAX_PATH, cwd);
-
-  int size = WideCharToMultiByte(CP_UTF8, 0, cwd, -1, nullptr, 0, nullptr, nullptr);
-
-  std::string utf8(size - 1, '\0');
-
-  WideCharToMultiByte(CP_UTF8, 0, cwd, -1, utf8.data(), size, nullptr, nullptr);
-
-  logDebug(utf8);
-
-  HRESULT hr = D3DCompileFromFile(L"vertex.hlsl", nullptr, nullptr, "main", "vs_5_0", 0, 0,
-      &tempVertexShader, nullptr);
+  auto shaderPath = Ngin::getExecutableDirectory();
+  HRESULT hr = D3DCompileFromFile((shaderPath / L"vertex.hlsl").c_str(), nullptr, nullptr, "main",
+      "vs_5_0", 0, 0, &tempVertexShader, nullptr);
   if (FAILED(hr))
     return hr;
   vertexShader.reset(tempVertexShader);
-  hr = D3DCompileFromFile(L"pixel.hlsl", nullptr, nullptr, "main", "ps_5_0", 0, 0,
-      &tempPixelShader, nullptr);
+  hr = D3DCompileFromFile((shaderPath / L"pixel.hlsl").c_str(), nullptr, nullptr, "main",
+      "ps_5_0", 0, 0, &tempPixelShader, nullptr);
   if (FAILED(hr))
     return hr;
   pixelShader.reset(tempPixelShader);

@@ -4,8 +4,6 @@
 
 #include <format>
 
-Ngin::Window::Window props;
-
 LRESULT CALLBACK WndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam) {
   switch (message) {
     case WM_CREATE:
@@ -13,12 +11,12 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam) 
       return 0;
     case WM_CLOSE:
       DestroyWindow(hwnd);
-      props.windowHandle = 0;
+      // props.windowHandle = 0;
       return 0;
 
     case WM_DESTROY:
       PostQuitMessage(0);
-      props.windowHandle = 0;
+      // props.windowHandle = 0;
       return 0;
 
     default:
@@ -59,15 +57,22 @@ ErrorCode Create(Window& windowProps) {
     return ErrorCode::PlatformError;
   }
 
-  if (FAILED(RHI::Create(windowProps.windowHandle, windowProps.width, windowProps.height,
-          windowProps.rhi))) {
+  HRESULT hr = RHI::Create(windowProps.windowHandle, windowProps.width, windowProps.height,
+      windowProps.rhi);
+
+  if (FAILED(hr)) {
+    if (hr == -2147024894) {
+      Ngin::logError("Shader file could not be found");
+      return ErrorCode::FileNotFound;
+    }
+    Ngin::logError(std::format("RHI creation failed: {}", hr));
     return ErrorCode::GraphicsError;
   }
 
   return ErrorCode::None;
 }
 
-ErrorCode SetShow(CmdShow shouldShow) {
+ErrorCode SetShow(Window& props, CmdShow shouldShow) {
   if (props.windowHandle == 0) {
     return ErrorCode::PlatformError;
   }
@@ -75,7 +80,7 @@ ErrorCode SetShow(CmdShow shouldShow) {
   return ErrorCode::None;
 }
 
-ErrorCode Update() {
+ErrorCode Update(Window& props) {
   if (props.windowHandle == 0) {
     return ErrorCode::PlatformError;
   }
