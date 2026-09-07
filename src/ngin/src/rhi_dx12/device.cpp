@@ -6,8 +6,12 @@ void setRasterizerState(D3D12_RASTERIZER_DESC& rasterizerDesc);
 void setDepthStencilState(D3D12_DEPTH_STENCIL_DESC& depthStencilDesc);
 namespace Ngin {
 HRESULT RHI::Create(HWND hwnd, uint16_t windowWidth, uint16_t windowHeight, Scope<RHI>& rhi) {
+  // TODOO: outsource
+  constexpr uint64_t FENCE_VALUE = 0;
+
   ComScope<ID3D12Device10> device;
   ComScope<ID3D12CommandQueue> cmdQueue;
+  ComScope<ID3D12Fence1> fence;
   ComScope<IDXGISwapChain4> swapChain;
   ComScope<ID3D12CommandAllocator> cmdAlloc;
   ComScope<ID3D12GraphicsCommandList> cmdList;
@@ -28,6 +32,9 @@ HRESULT RHI::Create(HWND hwnd, uint16_t windowWidth, uint16_t windowHeight, Scop
   hr = CreateCommandQueue(device.get(), cmdQueue);
   if (FAILED(hr))
     return hr;
+
+  logDebug("Creating Fence");
+  hr = device->CreateFence(FENCE_VALUE, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(&fence));
 
   logDebug("Creating Cmd Alloc");
   hr = CreateCommandAllocator(device.get(), cmdAlloc);
@@ -68,8 +75,8 @@ HRESULT RHI::Create(HWND hwnd, uint16_t windowWidth, uint16_t windowHeight, Scop
   logDebug("Creating RHI");
   if (rhi.get() != nullptr)
     rhi.reset();
-  rhi = std::make_unique<RHI>(device, cmdQueue, swapChain, cmdAlloc, cmdList, rtvHeap, factory,
-      rootSignature, pipelineState, renderTargets);
+  rhi = std::make_unique<RHI>(device, cmdQueue, fence, swapChain, cmdAlloc, cmdList, rtvHeap,
+      factory, rootSignature, pipelineState, renderTargets);
 
   return hr;
 }
@@ -77,7 +84,9 @@ HRESULT RHI::Create(HWND hwnd, uint16_t windowWidth, uint16_t windowHeight, Scop
 HRESULT RHI::CreateCommandQueue(ID3D12Device10* device, ComScope<ID3D12CommandQueue>& cmdQueue) {
   D3D12_COMMAND_QUEUE_DESC cmdQueDesc = {};
   cmdQueDesc.Type = D3D12_COMMAND_LIST_TYPE_DIRECT;
+  cmdQueDesc.Priority = D3D12_COMMAND_QUEUE_PRIORITY_HIGH;
   cmdQueDesc.Flags = D3D12_COMMAND_QUEUE_FLAG_NONE;
+  cmdQueDesc.NodeMask = 0;
   return device->CreateCommandQueue(&cmdQueDesc, IID_PPV_ARGS(&cmdQueue));
 }
 

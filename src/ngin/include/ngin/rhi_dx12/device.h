@@ -14,6 +14,7 @@ struct RHI : NonCopyable {
   RHI(RHI&& other) {
     Device = std::move(other.Device);
     CmdQueue = std::move(other.CmdQueue);
+    Fence = std::move(other.Fence);
     SwapChain = std::move(other.SwapChain);
     CmdAlloc = std::move(other.CmdAlloc);
     CmdList = std::move(other.CmdList);
@@ -29,6 +30,7 @@ struct RHI : NonCopyable {
 
     Device = std::move(other.Device);
     CmdQueue = std::move(other.CmdQueue);
+    Fence = std::move(other.Fence);
     SwapChain = std::move(other.SwapChain);
     CmdAlloc = std::move(other.CmdAlloc);
     CmdList = std::move(other.CmdList);
@@ -41,13 +43,14 @@ struct RHI : NonCopyable {
   }
 
   RHI(ComScope<ID3D12Device10>& device, ComScope<ID3D12CommandQueue>& cmdQueue,
-      ComScope<IDXGISwapChain4>& swapChain, ComScope<ID3D12CommandAllocator>& cmdAlloc,
-      ComScope<ID3D12GraphicsCommandList>& cmdList, ComScope<ID3D12DescriptorHeap>& rtvHeap,
-      ComScope<IDXGIFactory7>& factory, ComScope<ID3D12RootSignature>& rootSignature,
-      ComScope<ID3D12PipelineState>& pipelineState,
+      ComScope<ID3D12Fence1>& fence, ComScope<IDXGISwapChain4>& swapChain,
+      ComScope<ID3D12CommandAllocator>& cmdAlloc, ComScope<ID3D12GraphicsCommandList>& cmdList,
+      ComScope<ID3D12DescriptorHeap>& rtvHeap, ComScope<IDXGIFactory7>& factory,
+      ComScope<ID3D12RootSignature>& rootSignature, ComScope<ID3D12PipelineState>& pipelineState,
       List<ComScope<ID3D12Resource>>& renderTargets) {
     Device = std::move(device);
     CmdQueue = std::move(cmdQueue);
+    Fence = std::move(fence);
     SwapChain = std::move(swapChain);
     CmdAlloc = std::move(cmdAlloc);
     CmdList = std::move(cmdList);
@@ -58,8 +61,10 @@ struct RHI : NonCopyable {
     PipelineState = std::move(pipelineState);
   }
 
+ private:
   ComScope<ID3D12Device10> Device;
   ComScope<ID3D12CommandQueue> CmdQueue;
+  ComScope<ID3D12Fence1> Fence;
   ComScope<IDXGISwapChain4> SwapChain;
   ComScope<ID3D12CommandAllocator> CmdAlloc;
   ComScope<ID3D12GraphicsCommandList> CmdList;
@@ -69,7 +74,6 @@ struct RHI : NonCopyable {
   ComScope<ID3D12PipelineState> PipelineState;
   List<ComScope<ID3D12Resource>> RenderTargets;
 
- private:
   static HRESULT CreateCommandQueue(ID3D12Device10* device,
       ComScope<ID3D12CommandQueue>& cmdQueue);
   static HRESULT CreateCommandAllocator(ID3D12Device10* device,
