@@ -10,6 +10,8 @@ enum ErrorCode {
   FileNotFound,
   PlatformError,
   GraphicsError,
+  FenceError,
+  FenceTimeout
 };
 
 struct Error {
