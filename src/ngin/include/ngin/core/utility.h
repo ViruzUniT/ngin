@@ -1,8 +1,5 @@
 #pragma once
 
-#include <type_traits>
-#include <utility>
-
 namespace Ngin {
 class NonCopyable {
  protected:

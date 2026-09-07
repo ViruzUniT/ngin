@@ -6,104 +6,87 @@ void setRasterizerState(D3D12_RASTERIZER_DESC& rasterizerDesc);
 void setDepthStencilState(D3D12_DEPTH_STENCIL_DESC& depthStencilDesc);
 namespace Ngin {
 HRESULT RHI::Create(HWND hwnd, uint16_t windowWidth, uint16_t windowHeight, Scope<RHI>& rhi) {
-  ID3D12Device* tempDevice = nullptr;
-  ID3D12CommandQueue* tempCmdQueue = nullptr;
-  IDXGISwapChain4* tempSwapChain = nullptr;
-  ID3D12CommandAllocator* tempCmdAlloc = nullptr;
-  ID3D12GraphicsCommandList* tempCmdList = nullptr;
-  ID3D12DescriptorHeap* tempRtvHeap = nullptr;
-  IDXGIFactory7* tempFactory = nullptr;
-  ID3D12PipelineState* tempPipelineState = nullptr;
-
-  ComScope<ID3D12Device> device = nullptr;
-  ComScope<ID3D12CommandQueue> cmdQueue = nullptr;
-  ComScope<IDXGISwapChain4> swapChain = nullptr;
-  ComScope<ID3D12CommandAllocator> cmdAlloc = nullptr;
-  ComScope<ID3D12GraphicsCommandList> cmdList = nullptr;
-  ComScope<ID3D12DescriptorHeap> rtvHeap = nullptr;
-  ComScope<IDXGIFactory7> factory = nullptr;
-  ComScope<ID3D12RootSignature> rootSignature = nullptr;
-  ComScope<ID3DBlob> signatureBlob = nullptr;
-  ComScope<ID3DBlob> errorBlob = nullptr;
-  ComScope<ID3D12PipelineState> pipelineState = nullptr;
+  ComScope<ID3D12Device> device;
+  ComScope<ID3D12CommandQueue> cmdQueue;
+  ComScope<IDXGISwapChain4> swapChain;
+  ComScope<ID3D12CommandAllocator> cmdAlloc;
+  ComScope<ID3D12GraphicsCommandList> cmdList;
+  ComScope<ID3D12DescriptorHeap> rtvHeap;
+  ComScope<IDXGIFactory7> factory;
+  ComScope<ID3D12RootSignature> rootSignature;
+  ComScope<ID3DBlob> signatureBlob;
+  ComScope<ID3DBlob> errorBlob;
+  ComScope<ID3D12PipelineState> pipelineState;
   List<ComScope<ID3D12Resource>> renderTargets = {};
 
-  Ngin::logDebug("Creating Device");
-  HRESULT hr = D3D12CreateDevice(nullptr, D3D_FEATURE_LEVEL_12_1, IID_PPV_ARGS(&tempDevice));
+  logDebug("Creating Device");
+  HRESULT hr = D3D12CreateDevice(nullptr, D3D_FEATURE_LEVEL_12_1, IID_PPV_ARGS(&device));
   if (FAILED(hr))
     return hr;
-  device.reset(tempDevice);
 
-  Ngin::logDebug("Creating Cmd Queue");
-  hr = CreateCommandQueue(tempDevice, tempCmdQueue);
+  logDebug("Creating Cmd Queue");
+  hr = CreateCommandQueue(device.get(), cmdQueue);
   if (FAILED(hr))
     return hr;
-  cmdQueue.reset(tempCmdQueue);
 
-  Ngin::logDebug("Creating Cmd Alloc");
-  hr = CreateCommandAllocator(tempDevice, tempCmdAlloc);
+  logDebug("Creating Cmd Alloc");
+  hr = CreateCommandAllocator(device.get(), cmdAlloc);
   if (FAILED(hr))
     return hr;
-  cmdAlloc.reset(tempCmdAlloc);
 
-  Ngin::logDebug("Creating Cmd List");
-  hr = CreateCommandList(tempDevice, tempCmdList, tempCmdAlloc);
+  logDebug("Creating Cmd List");
+  hr = CreateCommandList(device.get(), cmdList, cmdAlloc.get());
   if (FAILED(hr))
     return hr;
-  cmdList.reset(tempCmdList);
 
-  Ngin::logDebug("Creating Factory");
-  hr = CreateDXGIFactory(IID_PPV_ARGS(&tempFactory));
+  logDebug("Creating Factory");
+  hr = CreateDXGIFactory(IID_PPV_ARGS(&factory));
   if (FAILED(hr))
     return hr;
-  factory.reset(tempFactory);
 
-  Ngin::logDebug("Creating Swap chain");
-  hr = CreateSwapChain(tempFactory, tempSwapChain, tempCmdQueue, windowWidth, windowHeight, hwnd,
+  logDebug("Creating Swap chain");
+  hr = CreateSwapChain(factory.get(), swapChain, cmdQueue.get(), windowWidth, windowHeight, hwnd,
       true);
   if (FAILED(hr))
     return hr;
-  swapChain.reset(tempSwapChain);
 
-  Ngin::logDebug("Creating Rtv Heap");
-  hr = CreateRtvHeap(tempDevice, tempSwapChain, tempRtvHeap, renderTargets);
-  if (FAILED(hr))
-    return hr;
-  rtvHeap.reset(tempRtvHeap);
-
-  Ngin::logDebug("Creating Sig");
-  hr = CreateSignature(tempDevice, rootSignature, signatureBlob, errorBlob);
+  logDebug("Creating Rtv Heap");
+  hr = CreateRtvHeap(device.get(), swapChain.get(), rtvHeap, renderTargets);
   if (FAILED(hr))
     return hr;
 
-  Ngin::logDebug("Creating Pipeline");
-  hr = CreatePipeline(device.get(), rootSignature.get(), tempPipelineState);
+  logDebug("Creating Sig");
+  hr = CreateSignature(device.get(), rootSignature, signatureBlob, errorBlob);
   if (FAILED(hr))
     return hr;
-  pipelineState.reset(tempPipelineState);
 
-  Ngin::logDebug("Creating RHI");
+  logDebug("Creating Pipeline");
+  hr = CreatePipeline(device.get(), rootSignature.get(), pipelineState);
+  if (FAILED(hr))
+    return hr;
+
+  logDebug("Creating RHI");
   if (rhi.get() != nullptr)
     rhi.reset();
-  rhi = Scope<RHI>(RHI(std::move(device), std::move(cmdQueue), std::move(swapChain),
-      std::move(cmdAlloc), std::move(cmdList), std::move(rtvHeap), std::move(factory),
-      std::move(rootSignature), std::move(pipelineState), std::move(renderTargets)));
+  rhi = std::make_unique<RHI>(device, cmdQueue, swapChain, cmdAlloc, cmdList, rtvHeap, factory,
+      rootSignature, pipelineState, renderTargets);
 
   return hr;
 }
 
-HRESULT RHI::CreateCommandQueue(ID3D12Device* device, ID3D12CommandQueue*& cmdQueue) {
+HRESULT RHI::CreateCommandQueue(ID3D12Device* device, ComScope<ID3D12CommandQueue>& cmdQueue) {
   D3D12_COMMAND_QUEUE_DESC cmdQueDesc = {};
   cmdQueDesc.Type = D3D12_COMMAND_LIST_TYPE_DIRECT;
   cmdQueDesc.Flags = D3D12_COMMAND_QUEUE_FLAG_NONE;
   return device->CreateCommandQueue(&cmdQueDesc, IID_PPV_ARGS(&cmdQueue));
 }
 
-HRESULT RHI::CreateCommandAllocator(ID3D12Device* device, ID3D12CommandAllocator*& cmdAlloc) {
+HRESULT RHI::CreateCommandAllocator(ID3D12Device* device,
+    ComScope<ID3D12CommandAllocator>& cmdAlloc) {
   return device->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_DIRECT, IID_PPV_ARGS(&cmdAlloc));
 }
 
-HRESULT RHI::CreateCommandList(ID3D12Device* device, ID3D12GraphicsCommandList*& cmdList,
+HRESULT RHI::CreateCommandList(ID3D12Device* device, ComScope<ID3D12GraphicsCommandList>& cmdList,
     ID3D12CommandAllocator* cmdAlloc) {
   HRESULT hr = device->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_DIRECT, cmdAlloc, nullptr,
       IID_PPV_ARGS(&cmdList));
@@ -112,7 +95,7 @@ HRESULT RHI::CreateCommandList(ID3D12Device* device, ID3D12GraphicsCommandList*&
   return cmdList->Close();
 }
 
-HRESULT RHI::CreateSwapChain(IDXGIFactory7* factory, IDXGISwapChain4*& swapChain,
+HRESULT RHI::CreateSwapChain(IDXGIFactory7* factory, ComScope<IDXGISwapChain4>& swapChain,
     ID3D12CommandQueue* cmdQueue, uint16_t width, uint16_t height, HWND hwnd, bool windowed) {
   DXGI_SWAP_CHAIN_DESC1 desc = {};
   desc.Width = width;
@@ -139,7 +122,7 @@ HRESULT RHI::CreateSwapChain(IDXGIFactory7* factory, IDXGISwapChain4*& swapChain
 }
 
 HRESULT RHI::CreateRtvHeap(ID3D12Device* device, IDXGISwapChain4* swapChain,
-    ID3D12DescriptorHeap*& rtvHeap, List<ComScope<ID3D12Resource>>& renderTargets) {
+    ComScope<ID3D12DescriptorHeap>& rtvHeap, List<ComScope<ID3D12Resource>>& renderTargets) {
   D3D12_DESCRIPTOR_HEAP_DESC rtvHeapDesc = {};
   rtvHeapDesc.NumDescriptors = 2;
   rtvHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_RTV;
@@ -153,13 +136,11 @@ HRESULT RHI::CreateRtvHeap(ID3D12Device* device, IDXGISwapChain4* swapChain,
       device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
 
   D3D12_CPU_DESCRIPTOR_HANDLE rtvHandle(rtvHeap->GetCPUDescriptorHandleForHeapStart());
+
   for (UINT i = 0; i < 2; i++) {
-    ID3D12Resource* tempRenderTarget = nullptr;
-    hr = swapChain->GetBuffer(i, IID_PPV_ARGS(&tempRenderTarget));
+    hr = swapChain->GetBuffer(i, IID_PPV_ARGS(&renderTargets[i]));
     if (FAILED(hr))
       return hr;
-
-    renderTargets[i].reset(tempRenderTarget);
     device->CreateRenderTargetView(renderTargets[i].get(), nullptr, rtvHandle);
     rtvHandle.ptr += rtvIncrementSize;
   }
@@ -182,44 +163,32 @@ HRESULT RHI::CreateSignature(ID3D12Device* device, ComScope<ID3D12RootSignature>
   rootSignatureDesc.pStaticSamplers = nullptr;
   rootSignatureDesc.Flags = D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT;
 
-  ID3DBlob* tempSignatureBlob = nullptr;
-  ID3DBlob* tempErrorBlob = nullptr;
-
   HRESULT hr = D3D12SerializeRootSignature(&rootSignatureDesc, D3D_ROOT_SIGNATURE_VERSION_1,
-      &tempSignatureBlob, &tempErrorBlob);
-  signatureBlob.reset(tempSignatureBlob);
-  errorBlob.reset(tempErrorBlob);
+      &signatureBlob, &errorBlob);
   if (FAILED(hr))
     return hr;
 
-  ID3D12RootSignature* tempRootSignature = nullptr;
   hr = device->CreateRootSignature(0, signatureBlob->GetBufferPointer(),
-      signatureBlob->GetBufferSize(), IID_PPV_ARGS(&tempRootSignature));
+      signatureBlob->GetBufferSize(), IID_PPV_ARGS(&rootSignature));
   if (FAILED(hr))
     return hr;
-
-  rootSignature.reset(tempRootSignature);
   return hr;
 }
 
 HRESULT RHI::CreatePipeline(ID3D12Device* device, ID3D12RootSignature* rootSignature,
-    ID3D12PipelineState*& pipelineState) {
-  ID3DBlob* tempVertexShader = nullptr;
-  ID3DBlob* tempPixelShader = nullptr;
-  ComScope<ID3DBlob> vertexShader = nullptr;
-  ComScope<ID3DBlob> pixelShader = nullptr;
+    ComScope<ID3D12PipelineState>& pipelineState) {
+  ComScope<ID3DBlob> vertexShader;
+  ComScope<ID3DBlob> pixelShader;
 
   auto shaderPath = Ngin::getExecutableDirectory();
   HRESULT hr = D3DCompileFromFile((shaderPath / L"vertex.hlsl").c_str(), nullptr, nullptr, "main",
-      "vs_5_0", 0, 0, &tempVertexShader, nullptr);
+      "vs_5_0", 0, 0, &vertexShader, nullptr);
   if (FAILED(hr))
     return hr;
-  vertexShader.reset(tempVertexShader);
   hr = D3DCompileFromFile((shaderPath / L"pixel.hlsl").c_str(), nullptr, nullptr, "main",
-      "ps_5_0", 0, 0, &tempPixelShader, nullptr);
+      "ps_5_0", 0, 0, &pixelShader, nullptr);
   if (FAILED(hr))
     return hr;
-  pixelShader.reset(tempPixelShader);
 
   // Pipeline state
   D3D12_GRAPHICS_PIPELINE_STATE_DESC psoDesc = {};
@@ -245,7 +214,8 @@ HRESULT RHI::CreatePipeline(ID3D12Device* device, ID3D12RootSignature* rootSigna
 
   return hr;
 }
-}  // namespace Ngin
+};  // namespace Ngin
+
 void setBlendState(D3D12_BLEND_DESC& blendDesc) {
   blendDesc = {};
 
