@@ -11,7 +11,7 @@ struct RHI : NonCopyable {
   RHI() = delete;
   static HRESULT Create(HWND hwnd, uint16_t windowWidth, uint16_t windowHeight, Scope<RHI>& rhi);
 
-  RHI(RHI&& other) {
+  RHI(RHI&& other) : FenceEvent(other.FenceEvent) {
     Device = std::move(other.Device);
     CmdQueue = std::move(other.CmdQueue);
     Fence = std::move(other.Fence);
@@ -39,15 +39,17 @@ struct RHI : NonCopyable {
     RootSignature = std::move(other.RootSignature);
     RenderTargets = std::move(other.RenderTargets);
     PipelineState = std::move(other.PipelineState);
+    FenceEvent = other.FenceEvent;
     return *this;
   }
 
   RHI(ComScope<ID3D12Device10>& device, ComScope<ID3D12CommandQueue>& cmdQueue,
-      ComScope<ID3D12Fence1>& fence, ComScope<IDXGISwapChain4>& swapChain,
+      ComScope<ID3D12Fence1>& fence, HANDLE fenceEvent, ComScope<IDXGISwapChain4>& swapChain,
       ComScope<ID3D12CommandAllocator>& cmdAlloc, ComScope<ID3D12GraphicsCommandList>& cmdList,
       ComScope<ID3D12DescriptorHeap>& rtvHeap, ComScope<IDXGIFactory7>& factory,
       ComScope<ID3D12RootSignature>& rootSignature, ComScope<ID3D12PipelineState>& pipelineState,
-      List<ComScope<ID3D12Resource>>& renderTargets) {
+      List<ComScope<ID3D12Resource>>& renderTargets)
+      : FenceEvent(fenceEvent) {
     Device = std::move(device);
     CmdQueue = std::move(cmdQueue);
     Fence = std::move(fence);
@@ -61,7 +63,17 @@ struct RHI : NonCopyable {
     PipelineState = std::move(pipelineState);
   }
 
+  ~RHI() {
+    if (FenceEvent)
+      CloseHandle(FenceEvent);
+  }
+
+  Error SignalAndWait();
+
  private:
+  uint64_t FenceValue = 0;
+  HANDLE FenceEvent;
+
   ComScope<ID3D12Device10> Device;
   ComScope<ID3D12CommandQueue> CmdQueue;
   ComScope<ID3D12Fence1> Fence;
@@ -76,6 +88,8 @@ struct RHI : NonCopyable {
 
   static HRESULT CreateCommandQueue(ID3D12Device10* device,
       ComScope<ID3D12CommandQueue>& cmdQueue);
+  static HRESULT CreateFence(ID3D12Device10* device, const uint64_t fenceValue,
+      ComScope<ID3D12Fence1>& fence, HANDLE& fenceEvent);
   static HRESULT CreateCommandAllocator(ID3D12Device10* device,
       ComScope<ID3D12CommandAllocator>& cmdAlloc);
   static HRESULT CreateGraphicsCommandList(ID3D12Device10* device,

@@ -6,8 +6,9 @@ void setRasterizerState(D3D12_RASTERIZER_DESC& rasterizerDesc);
 void setDepthStencilState(D3D12_DEPTH_STENCIL_DESC& depthStencilDesc);
 namespace Ngin {
 HRESULT RHI::Create(HWND hwnd, uint16_t windowWidth, uint16_t windowHeight, Scope<RHI>& rhi) {
-  // TODOO: outsource
+  // TODOO: check if it makes problems or if theres a better way for this shit
   constexpr uint64_t FENCE_VALUE = 0;
+  HANDLE fenceEvent = nullptr;
 
   ComScope<ID3D12Device10> device;
   ComScope<ID3D12CommandQueue> cmdQueue;
@@ -34,7 +35,9 @@ HRESULT RHI::Create(HWND hwnd, uint16_t windowWidth, uint16_t windowHeight, Scop
     return hr;
 
   logDebug("Creating Fence");
-  hr = device->CreateFence(FENCE_VALUE, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(&fence));
+  hr = CreateFence(device.get(), FENCE_VALUE, fence, fenceEvent);
+  if (FAILED(hr))
+    return hr;
 
   logDebug("Creating Cmd Alloc");
   hr = CreateCommandAllocator(device.get(), cmdAlloc);
@@ -75,12 +78,30 @@ HRESULT RHI::Create(HWND hwnd, uint16_t windowWidth, uint16_t windowHeight, Scop
   logDebug("Creating RHI");
   if (rhi.get() != nullptr)
     rhi.reset();
-  rhi = std::make_unique<RHI>(device, cmdQueue, fence, swapChain, cmdAlloc, cmdList, rtvHeap,
-      factory, rootSignature, pipelineState, renderTargets);
+  rhi = std::make_unique<RHI>(device, cmdQueue, fence, fenceEvent, swapChain, cmdAlloc, cmdList,
+      rtvHeap, factory, rootSignature, pipelineState, renderTargets);
 
   return hr;
 }
 
+Error RHI::SignalAndWait() {
+  CmdQueue->Signal(Fence.get(), ++FenceValue);
+  HRESULT hr = Fence->SetEventOnCompletion(FenceValue, FenceEvent);
+  if (SUCCEEDED(hr)) {
+    DWORD res = WaitForSingleObject(FenceEvent, 21000);
+    if (res != WAIT_OBJECT_0) {
+      logFatal(std::format("Fence Event has timed out :( {}", res));
+      return Error{FenceTimeout, std::format("Fence Event has timed out :( {}", res)};
+    }
+  } else {
+    logFatal(std::format("Fence Event was unsuccessfull :( {}", hr));
+    return Error{FenceError, std::format("Fence Event was unsuccessfull :( {}", hr)};
+  }
+  return Error{};
+}
+}  // namespace Ngin
+
+namespace Ngin {
 HRESULT RHI::CreateCommandQueue(ID3D12Device10* device, ComScope<ID3D12CommandQueue>& cmdQueue) {
   D3D12_COMMAND_QUEUE_DESC cmdQueDesc = {};
   cmdQueDesc.Type = D3D12_COMMAND_LIST_TYPE_DIRECT;
@@ -88,6 +109,16 @@ HRESULT RHI::CreateCommandQueue(ID3D12Device10* device, ComScope<ID3D12CommandQu
   cmdQueDesc.Flags = D3D12_COMMAND_QUEUE_FLAG_NONE;
   cmdQueDesc.NodeMask = 0;
   return device->CreateCommandQueue(&cmdQueDesc, IID_PPV_ARGS(&cmdQueue));
+}
+
+HRESULT RHI::CreateFence(ID3D12Device10* device, const uint64_t fenceValue,
+    ComScope<ID3D12Fence1>& fence, HANDLE& fenceEvent) {
+  HRESULT hr = device->CreateFence(fenceValue, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(&fence));
+  if (FAILED(hr))
+    return hr;
+
+  fenceEvent = CreateEvent(nullptr, false, false, nullptr);
+  return hr;
 }
 
 HRESULT RHI::CreateCommandAllocator(ID3D12Device10* device,
