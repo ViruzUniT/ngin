@@ -6,7 +6,7 @@ void setRasterizerState(D3D12_RASTERIZER_DESC& rasterizerDesc);
 void setDepthStencilState(D3D12_DEPTH_STENCIL_DESC& depthStencilDesc);
 namespace Ngin {
 HRESULT RHI::Create(HWND hwnd, uint16_t windowWidth, uint16_t windowHeight, Scope<RHI>& rhi) {
-  ComScope<ID3D12Device> device;
+  ComScope<ID3D12Device10> device;
   ComScope<ID3D12CommandQueue> cmdQueue;
   ComScope<IDXGISwapChain4> swapChain;
   ComScope<ID3D12CommandAllocator> cmdAlloc;
@@ -74,20 +74,20 @@ HRESULT RHI::Create(HWND hwnd, uint16_t windowWidth, uint16_t windowHeight, Scop
   return hr;
 }
 
-HRESULT RHI::CreateCommandQueue(ID3D12Device* device, ComScope<ID3D12CommandQueue>& cmdQueue) {
+HRESULT RHI::CreateCommandQueue(ID3D12Device10* device, ComScope<ID3D12CommandQueue>& cmdQueue) {
   D3D12_COMMAND_QUEUE_DESC cmdQueDesc = {};
   cmdQueDesc.Type = D3D12_COMMAND_LIST_TYPE_DIRECT;
   cmdQueDesc.Flags = D3D12_COMMAND_QUEUE_FLAG_NONE;
   return device->CreateCommandQueue(&cmdQueDesc, IID_PPV_ARGS(&cmdQueue));
 }
 
-HRESULT RHI::CreateCommandAllocator(ID3D12Device* device,
+HRESULT RHI::CreateCommandAllocator(ID3D12Device10* device,
     ComScope<ID3D12CommandAllocator>& cmdAlloc) {
   return device->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_DIRECT, IID_PPV_ARGS(&cmdAlloc));
 }
 
-HRESULT RHI::CreateCommandList(ID3D12Device* device, ComScope<ID3D12GraphicsCommandList>& cmdList,
-    ID3D12CommandAllocator* cmdAlloc) {
+HRESULT RHI::CreateCommandList(ID3D12Device10* device,
+    ComScope<ID3D12GraphicsCommandList>& cmdList, ID3D12CommandAllocator* cmdAlloc) {
   HRESULT hr = device->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_DIRECT, cmdAlloc, nullptr,
       IID_PPV_ARGS(&cmdList));
   if (FAILED(hr))
@@ -121,7 +121,7 @@ HRESULT RHI::CreateSwapChain(IDXGIFactory7* factory, ComScope<IDXGISwapChain4>& 
   return hr;
 }
 
-HRESULT RHI::CreateRtvHeap(ID3D12Device* device, IDXGISwapChain4* swapChain,
+HRESULT RHI::CreateRtvHeap(ID3D12Device10* device, IDXGISwapChain4* swapChain,
     ComScope<ID3D12DescriptorHeap>& rtvHeap, List<ComScope<ID3D12Resource>>& renderTargets) {
   D3D12_DESCRIPTOR_HEAP_DESC rtvHeapDesc = {};
   rtvHeapDesc.NumDescriptors = 2;
@@ -147,7 +147,7 @@ HRESULT RHI::CreateRtvHeap(ID3D12Device* device, IDXGISwapChain4* swapChain,
   return hr;
 }
 
-HRESULT RHI::CreateSignature(ID3D12Device* device, ComScope<ID3D12RootSignature>& rootSignature,
+HRESULT RHI::CreateSignature(ID3D12Device10* device, ComScope<ID3D12RootSignature>& rootSignature,
     ComScope<ID3DBlob>& signatureBlob, ComScope<ID3DBlob>& errorBlob) {
   D3D12_ROOT_PARAMETER rootParameters[1] = {};
   rootParameters[0].ParameterType = D3D12_ROOT_PARAMETER_TYPE_32BIT_CONSTANTS;
@@ -175,7 +175,7 @@ HRESULT RHI::CreateSignature(ID3D12Device* device, ComScope<ID3D12RootSignature>
   return hr;
 }
 
-HRESULT RHI::CreatePipeline(ID3D12Device* device, ID3D12RootSignature* rootSignature,
+HRESULT RHI::CreatePipeline(ID3D12Device10* device, ID3D12RootSignature* rootSignature,
     ComScope<ID3D12PipelineState>& pipelineState) {
   ComScope<ID3DBlob> vertexShader;
   ComScope<ID3DBlob> pixelShader;

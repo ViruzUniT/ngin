@@ -40,7 +40,7 @@ struct RHI : NonCopyable {
     return *this;
   }
 
-  RHI(ComScope<ID3D12Device>& device, ComScope<ID3D12CommandQueue>& cmdQueue,
+  RHI(ComScope<ID3D12Device10>& device, ComScope<ID3D12CommandQueue>& cmdQueue,
       ComScope<IDXGISwapChain4>& swapChain, ComScope<ID3D12CommandAllocator>& cmdAlloc,
       ComScope<ID3D12GraphicsCommandList>& cmdList, ComScope<ID3D12DescriptorHeap>& rtvHeap,
       ComScope<IDXGIFactory7>& factory, ComScope<ID3D12RootSignature>& rootSignature,
@@ -58,7 +58,7 @@ struct RHI : NonCopyable {
     PipelineState = std::move(pipelineState);
   }
 
-  ComScope<ID3D12Device> Device;
+  ComScope<ID3D12Device10> Device;
   ComScope<ID3D12CommandQueue> CmdQueue;
   ComScope<IDXGISwapChain4> SwapChain;
   ComScope<ID3D12CommandAllocator> CmdAlloc;
@@ -70,21 +70,22 @@ struct RHI : NonCopyable {
   List<ComScope<ID3D12Resource>> RenderTargets;
 
  private:
-  static HRESULT CreateCommandQueue(ID3D12Device* device, ComScope<ID3D12CommandQueue>& cmdQueue);
-  static HRESULT CreateCommandAllocator(ID3D12Device* device,
+  static HRESULT CreateCommandQueue(ID3D12Device10* device,
+      ComScope<ID3D12CommandQueue>& cmdQueue);
+  static HRESULT CreateCommandAllocator(ID3D12Device10* device,
       ComScope<ID3D12CommandAllocator>& cmdAlloc);
-  static HRESULT CreateGraphicsCommandList(ID3D12Device* device,
+  static HRESULT CreateGraphicsCommandList(ID3D12Device10* device,
       ComScope<ID3D12GraphicsCommandList>& cmdList, ID3D12CommandAllocator* cmdAlloc);
   static HRESULT CreateSwapChain(IDXGIFactory7* factory, ComScope<IDXGISwapChain4>& swapChain,
       ID3D12CommandQueue* cmdQueue, uint16_t width, uint16_t geight, HWND hwnd, bool windowed);
-  static HRESULT CreateRtvHeap(ID3D12Device* device, IDXGISwapChain4* swapChain,
+  static HRESULT CreateRtvHeap(ID3D12Device10* device, IDXGISwapChain4* swapChain,
       ComScope<ID3D12DescriptorHeap>& rtvHeap, List<ComScope<ID3D12Resource>>& renderTargets);
-  static HRESULT CreateSignature(ID3D12Device* device,
+  static HRESULT CreateSignature(ID3D12Device10* device,
       ComScope<ID3D12RootSignature>& rootSignature, ComScope<ID3DBlob>& signatureBlob,
       ComScope<ID3DBlob>& errorBlob);
-  static HRESULT CreatePipeline(ID3D12Device* device, ID3D12RootSignature* rootSignature,
+  static HRESULT CreatePipeline(ID3D12Device10* device, ID3D12RootSignature* rootSignature,
       ComScope<ID3D12PipelineState>& pipelineState);
-  static HRESULT CreateCommandList(ID3D12Device* device,
+  static HRESULT CreateCommandList(ID3D12Device10* device,
       ComScope<ID3D12GraphicsCommandList>& cmdList, ID3D12CommandAllocator* cmdAlloc);
 };
 }  // namespace Ngin
