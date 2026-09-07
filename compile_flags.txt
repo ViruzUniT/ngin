@@ -1,0 +1,8 @@
+-std=c++23
+-Isrc/ngin/include
+-Isrc/ngin/src
+-Ivendor/imgui
+-DNGIN_DEBUG
+-DNGIN_DEV_UI
+-DNGIN_PLATFORM_WINDOWS
+-m64

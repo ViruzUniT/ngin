@@ -5,19 +5,11 @@
 bool DXDebugLayer::Init() {
 #ifdef NGIN_DEBUG
   Ngin::DebugOutputToStdout dbg;
-  ID3D12Debug5* temp3Debug = nullptr;
-  HRESULT res = D3D12GetDebugInterface(IID_PPV_ARGS(&temp3Debug));
+  HRESULT res = D3D12GetDebugInterface(IID_PPV_ARGS(&m_d3d12Debug));
   if (SUCCEEDED(res)) {
-    m_d3d12Debug.reset(temp3Debug);
-    temp3Debug = nullptr;
-
     m_d3d12Debug->EnableDebugLayer();
 
-    IDXGIDebug1* tempxDebug = nullptr;
-    if (SUCCEEDED(DXGIGetDebugInterface1(0, IID_PPV_ARGS(&tempxDebug)))) {
-      m_dxgiDebug.reset(tempxDebug);
-      tempxDebug = nullptr;
-
+    if (SUCCEEDED(DXGIGetDebugInterface1(0, IID_PPV_ARGS(&m_dxgiDebug)))) {
       m_dxgiDebug->EnableLeakTrackingForThread();
       return true;
     } else {
@@ -37,8 +29,8 @@ void DXDebugLayer::Shutdown() {
     m_dxgiDebug->ReportLiveObjects(DXGI_DEBUG_ALL,
         DXGI_DEBUG_RLO_FLAGS(DXGI_DEBUG_RLO_DETAIL | DXGI_DEBUG_RLO_IGNORE_INTERNAL));
   }
-  m_dxgiDebug.reset(nullptr);
-  m_d3d12Debug.reset(nullptr);
+  m_dxgiDebug.reset();
+  m_d3d12Debug.reset();
 #endif
 }
 #endif
