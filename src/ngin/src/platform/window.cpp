@@ -3,6 +3,10 @@
 #include <ngin/platform/window.h>
 
 #include <format>
+#include <unordered_map>
+
+std::unordered_map<HWND, Ngin::Window::Window*> windows;
+std::vector<HWND> windowsToClose;
 
 LRESULT CALLBACK WndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam) {
   switch (message) {
@@ -10,13 +14,11 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam) 
       Ngin::logTrace("Window created :)");
       return 0;
     case WM_CLOSE:
-      DestroyWindow(hwnd);
-      // props.windowHandle = 0;
+      windowsToClose.push_back(hwnd);
       return 0;
 
     case WM_DESTROY:
       PostQuitMessage(0);
-      // props.windowHandle = 0;
       return 0;
 
     default:
@@ -82,6 +84,8 @@ Error Create(Window& window) {
     return Error{GraphicsError, std::format("RHI creation failed: {}", hr)};
   }
 
+  windows.insert_or_assign(window.handle, &window);
+
   return Error{};
 }
 
@@ -93,28 +97,43 @@ Error SetShow(Window& props, CmdShow shouldShow) {
   return Error{};
 }
 
+void CheckForClosableWindows() {
+  if (windowsToClose.size() <= 0) {
+    return;
+  }
+  for (const auto windowToClose : windowsToClose) {
+    if (windows.contains(windowToClose)) {
+      Close(*windows.at(windowToClose));
+    }
+  }
+}
+
 Error Update(Window& window) {
   if (window.handle == 0) {
     return Error{PlatformError, "Window handle is NULL"};
   }
 
+  CheckForClosableWindows();
+
   MSG msg;
 
   while (PeekMessage(&msg, nullptr, 0, 0, PM_REMOVE)) {
     if (msg.message == WM_QUIT) {
+      Close(window);
       window.handle = 0;
       return Error{Exit, "Window was closed"};
     }
     TranslateMessage(&msg);
     DispatchMessage(&msg);
-    window.rhi->Update();
   }
+  window.rhi->Update();
   return Error{};
 }
 
 Error Close(Window& window) {
   if (window.handle) {
     DestroyWindow(window.handle);
+    windows.erase(window.handle);
     window.handle = nullptr;
   }
   if (window.w_class) {

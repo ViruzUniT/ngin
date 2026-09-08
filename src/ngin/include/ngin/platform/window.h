@@ -17,7 +17,7 @@ struct Window {
   uint16_t width;
   uint16_t height;
   std::string name;
-  std::string className = "NginWindow";
+  std::string className;
   HWND handle = nullptr;
   ATOM w_class = 0;
 
@@ -28,8 +28,9 @@ struct Window {
   Window() = default;
 };
 
-Error Create(Window& props);
-Error SetShow(Window& props, CmdShow shouldShow);
-Error Update(Window& props);
+Error Create(Window& window);
+Error SetShow(Window& window, CmdShow shouldShow);
+Error Update(Window& window);
+Error Close(Window& window);
 }  // namespace Window
 }  // namespace Ngin

@@ -26,6 +26,7 @@ int main() {
       // Sleep(1);
     }
     Ngin::logInfo("Sandbox terminating.");
+    Ngin::Window::Close(window);
   }
   DXDebugLayer::Get().Shutdown();
 
