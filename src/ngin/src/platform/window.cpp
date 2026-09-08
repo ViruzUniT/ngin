@@ -7,7 +7,7 @@
 LRESULT CALLBACK WndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam) {
   switch (message) {
     case WM_CREATE:
-      Ngin::logInfo("Window created :)");
+      Ngin::logTrace("Window created :)");
       return 0;
     case WM_CLOSE:
       DestroyWindow(hwnd);
@@ -28,18 +28,20 @@ namespace Ngin {
 namespace Window {
 Error Create(Window& windowProps) {
   WNDCLASS wc;
-  HINSTANCE instance = GetModuleHandleA(nullptr);
+  HINSTANCE instance = GetModuleHandle(nullptr);
 
-  wc.style = CS_VREDRAW | CS_HREDRAW;
-  wc.lpszClassName = windowProps.className.c_str();
+  // wc.style = CS_VREDRAW | CS_HREDRAW;
+  wc.style = CS_OWNDC;
   wc.lpfnWndProc = WndProc;
-  wc.hInstance = instance;
   wc.cbClsExtra = 0;
   wc.cbWndExtra = 0;
-  wc.hCursor = LoadCursorA(0, IDC_ARROW);
-  wc.hbrBackground = (HBRUSH)GetStockObject(WHITE_BRUSH);
-  wc.lpszMenuName = 0;
-  wc.hIcon = 0;
+  wc.hInstance = instance;
+  wc.hIcon = LoadIcon(nullptr, IDI_APPLICATION);
+  wc.hCursor = LoadCursor(0, IDC_ARROW);
+  wc.hbrBackground = nullptr;
+  wc.lpszMenuName = nullptr;
+  wc.lpszClassName = windowProps.className.c_str();
+  wc.hIcon = LoadIcon(nullptr, IDI_APPLICATION);
 
   if (!RegisterClassA(&wc)) {
     Ngin::logError(std::format("Creating window failed. Couldnt RegisterClass Error code {}",

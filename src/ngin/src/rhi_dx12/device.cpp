@@ -103,9 +103,13 @@ Error RHI::SignalAndWait() {
 }
 
 Error RHI::ExecuteCommandList() {
+  // if (SUCCEEDED(CmdList->Close())) {
   ID3D12CommandList* list[] = {CmdList.get()};
   CmdQueue->ExecuteCommandLists(1, list);
   return SignalAndWait();
+  // }
+  // return Error{Unknown, "Cmd list was not closed, but not shure if its a bad thing"};
+  return Error{};
 }
 }  // namespace Ngin
 
