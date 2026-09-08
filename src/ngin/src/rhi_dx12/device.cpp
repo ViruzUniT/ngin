@@ -50,7 +50,7 @@ HRESULT RHI::Create(HWND hwnd, uint16_t windowWidth, uint16_t windowHeight, Scop
     return hr;
 
   logDebug("Creating Factory");
-  hr = CreateDXGIFactory(IID_PPV_ARGS(&factory));
+  hr = CreateDXGIFactory2(0, IID_PPV_ARGS(&factory));
   if (FAILED(hr))
     return hr;
 
@@ -152,18 +152,23 @@ HRESULT RHI::CreateSwapChain(IDXGIFactory7* factory, ComScope<IDXGISwapChain4>& 
   DXGI_SWAP_CHAIN_DESC1 desc = {};
   desc.Width = width;
   desc.Height = height;
+  desc.Stereo = false;
   desc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
-  desc.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;
+  desc.BufferUsage = DXGI_USAGE_BACK_BUFFER | DXGI_USAGE_RENDER_TARGET_OUTPUT;
   desc.BufferCount = 2;
   desc.SampleDesc.Count = 1;
   desc.SampleDesc.Quality = 0;
   desc.SwapEffect = DXGI_SWAP_EFFECT_FLIP_DISCARD;
   desc.Scaling = DXGI_SCALING_STRETCH;
   desc.AlphaMode = DXGI_ALPHA_MODE_IGNORE;
+  desc.Flags = DXGI_SWAP_CHAIN_FLAG_ALLOW_MODE_SWITCH | DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING;
+
+  DXGI_SWAP_CHAIN_FULLSCREEN_DESC descFull = {};
+  descFull.Windowed = true;
 
   IDXGISwapChain1* tempSwapChain = nullptr;
   HRESULT hr =
-      factory->CreateSwapChainForHwnd(cmdQueue, hwnd, &desc, nullptr, nullptr, &tempSwapChain);
+      factory->CreateSwapChainForHwnd(cmdQueue, hwnd, &desc, &descFull, nullptr, &tempSwapChain);
   if (FAILED(hr))
     return hr;
 

@@ -35,7 +35,6 @@ Error Create(Window& window) {
   std::wstring windowName(window.name.begin(), window.name.end());
 
   logTrace("Setting wndClass desc");
-  // wc.style = CS_VREDRAW | CS_HREDRAW;
   wc.cbSize = sizeof(wc);
   wc.style = CS_OWNDC;
   wc.lpfnWndProc = WndProc;
