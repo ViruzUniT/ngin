@@ -45,7 +45,7 @@ struct RHI : NonCopyable {
 
   RHI(ComScope<ID3D12Device10>& device, ComScope<ID3D12CommandQueue>& cmdQueue,
       ComScope<ID3D12Fence1>& fence, HANDLE fenceEvent, ComScope<IDXGISwapChain4>& swapChain,
-      ComScope<ID3D12CommandAllocator>& cmdAlloc, ComScope<ID3D12GraphicsCommandList>& cmdList,
+      ComScope<ID3D12CommandAllocator>& cmdAlloc, ComScope<ID3D12GraphicsCommandList7>& cmdList,
       ComScope<ID3D12DescriptorHeap>& rtvHeap, ComScope<IDXGIFactory7>& factory,
       ComScope<ID3D12RootSignature>& rootSignature, ComScope<ID3D12PipelineState>& pipelineState,
       List<ComScope<ID3D12Resource>>& renderTargets)
@@ -79,7 +79,7 @@ struct RHI : NonCopyable {
   ComScope<ID3D12Fence1> Fence;
   ComScope<IDXGISwapChain4> SwapChain;
   ComScope<ID3D12CommandAllocator> CmdAlloc;
-  ComScope<ID3D12GraphicsCommandList> CmdList;
+  ComScope<ID3D12GraphicsCommandList7> CmdList;
   ComScope<ID3D12DescriptorHeap> RtvHeap;
   ComScope<IDXGIFactory7> Factory;
   ComScope<ID3D12RootSignature> RootSignature;
@@ -92,8 +92,8 @@ struct RHI : NonCopyable {
       ComScope<ID3D12Fence1>& fence, HANDLE& fenceEvent);
   static HRESULT CreateCommandAllocator(ID3D12Device10* device,
       ComScope<ID3D12CommandAllocator>& cmdAlloc);
-  static HRESULT CreateGraphicsCommandList(ID3D12Device10* device,
-      ComScope<ID3D12GraphicsCommandList>& cmdList, ID3D12CommandAllocator* cmdAlloc);
+  static HRESULT CreateGraphicsCommandList7(ID3D12Device10* device,
+      ComScope<ID3D12GraphicsCommandList7>& cmdList, ID3D12CommandAllocator* cmdAlloc);
   static HRESULT CreateSwapChain(IDXGIFactory7* factory, ComScope<IDXGISwapChain4>& swapChain,
       ID3D12CommandQueue* cmdQueue, uint16_t width, uint16_t geight, HWND hwnd, bool windowed);
   static HRESULT CreateRtvHeap(ID3D12Device10* device, IDXGISwapChain4* swapChain,
@@ -104,6 +104,6 @@ struct RHI : NonCopyable {
   static HRESULT CreatePipeline(ID3D12Device10* device, ID3D12RootSignature* rootSignature,
       ComScope<ID3D12PipelineState>& pipelineState);
   static HRESULT CreateCommandList(ID3D12Device10* device,
-      ComScope<ID3D12GraphicsCommandList>& cmdList, ID3D12CommandAllocator* cmdAlloc);
+      ComScope<ID3D12GraphicsCommandList7>& cmdList, ID3D12CommandAllocator* cmdAlloc);
 };
 }  // namespace Ngin

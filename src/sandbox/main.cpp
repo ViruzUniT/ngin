@@ -17,6 +17,7 @@ int main() {
 
     Ngin::Window::SetShow(window, Ngin::Window::CmdShow::ShowNormal);
     Ngin::logInfo("Sandbox started.");
+    DXDebugLayer::Get().Report();
     while (Ngin::Window::Update(window).code == Ngin::ErrorCode::None) {
       // Sleep(1);
     }

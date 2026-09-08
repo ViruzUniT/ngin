@@ -15,6 +15,7 @@ class DXDebugLayer : Ngin::NonCopyable {
  public:
   bool Init();
   void Shutdown();
+  void Report();
 
  private:
 #ifdef NGIN_DEBUG

@@ -15,7 +15,7 @@ HRESULT RHI::Create(HWND hwnd, uint16_t windowWidth, uint16_t windowHeight, Scop
   ComScope<ID3D12Fence1> fence;
   ComScope<IDXGISwapChain4> swapChain;
   ComScope<ID3D12CommandAllocator> cmdAlloc;
-  ComScope<ID3D12GraphicsCommandList> cmdList;
+  ComScope<ID3D12GraphicsCommandList7> cmdList;
   ComScope<ID3D12DescriptorHeap> rtvHeap;
   ComScope<IDXGIFactory7> factory;
   ComScope<ID3D12RootSignature> rootSignature;
@@ -127,7 +127,7 @@ HRESULT RHI::CreateCommandAllocator(ID3D12Device10* device,
 }
 
 HRESULT RHI::CreateCommandList(ID3D12Device10* device,
-    ComScope<ID3D12GraphicsCommandList>& cmdList, ID3D12CommandAllocator* cmdAlloc) {
+    ComScope<ID3D12GraphicsCommandList7>& cmdList, ID3D12CommandAllocator* cmdAlloc) {
   HRESULT hr = device->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_DIRECT, cmdAlloc, nullptr,
       IID_PPV_ARGS(&cmdList));
   if (FAILED(hr))

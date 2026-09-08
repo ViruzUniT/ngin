@@ -73,7 +73,7 @@ Error Create(Window& windowProps) {
     return Error{GraphicsError, std::format("RHI creation failed: {}", hr)};
   }
 
-  return Error{None};
+  return Error{};
 }
 
 Error SetShow(Window& props, CmdShow shouldShow) {
@@ -81,7 +81,7 @@ Error SetShow(Window& props, CmdShow shouldShow) {
     return Error{PlatformError, "Window Handle is NULL"};
   }
   ShowWindow(props.windowHandle, shouldShow);
-  return Error{None};
+  return Error{};
 }
 
 Error Update(Window& props) {
@@ -99,7 +99,7 @@ Error Update(Window& props) {
     TranslateMessage(&msg);
     DispatchMessage(&msg);
   }
-  return Error{None};
+  return Error{};
 }
 }  // namespace Window
 }  // namespace Ngin

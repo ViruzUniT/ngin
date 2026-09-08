@@ -6,7 +6,7 @@ namespace Ngin {
 enum ErrorCode {
   Unknown = -1,
   None = 0,
-  Exit = 2,
+  Exit,
   InvalidArgument,
   FileNotFound,
   PlatformError,
