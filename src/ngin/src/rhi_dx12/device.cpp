@@ -84,6 +84,8 @@ HRESULT RHI::Create(HWND hwnd, uint16_t windowWidth, uint16_t windowHeight, Scop
   return hr;
 }
 
+Error RHI::Update() { return ExecuteCommandList(); }
+
 Error RHI::SignalAndWait() {
   CmdQueue->Signal(Fence.get(), ++FenceValue);
   HRESULT hr = Fence->SetEventOnCompletion(FenceValue, FenceEvent);
@@ -98,6 +100,12 @@ Error RHI::SignalAndWait() {
     return Error{FenceError, std::format("Fence Event was unsuccessfull :( {}", hr)};
   }
   return Error{};
+}
+
+Error RHI::ExecuteCommandList() {
+  ID3D12CommandList* list[] = {CmdList.get()};
+  CmdQueue->ExecuteCommandLists(1, list);
+  return SignalAndWait();
 }
 }  // namespace Ngin
 

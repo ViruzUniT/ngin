@@ -68,7 +68,9 @@ struct RHI : NonCopyable {
       CloseHandle(FenceEvent);
   }
 
+  Error Update();
   Error SignalAndWait();
+  Error ExecuteCommandList();
 
  private:
   uint64_t FenceValue = 0;

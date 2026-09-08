@@ -49,11 +49,11 @@ Error Create(Window& windowProps) {
             GetLastError())};
   }
 
-  windowProps.windowHandle = CreateWindowExA(0, windowProps.className.c_str(),
-      windowProps.name.c_str(), WS_OVERLAPPEDWINDOW, CW_USEDEFAULT, CW_USEDEFAULT,
-      windowProps.width, windowProps.height, NULL, NULL, instance, NULL);
+  windowProps.handle = CreateWindowExA(0, windowProps.className.c_str(), windowProps.name.c_str(),
+      WS_OVERLAPPEDWINDOW, CW_USEDEFAULT, CW_USEDEFAULT, windowProps.width, windowProps.height,
+      NULL, NULL, instance, NULL);
 
-  if (windowProps.windowHandle == nullptr) {
+  if (windowProps.handle == nullptr) {
     Ngin::logError(std::format("Creating Window failed: Couldnt CreateWindowEx Error code {}",
         GetLastError()));
     return Error{PlatformError,
@@ -61,8 +61,8 @@ Error Create(Window& windowProps) {
             GetLastError())};
   }
 
-  HRESULT hr = RHI::Create(windowProps.windowHandle, windowProps.width, windowProps.height,
-      windowProps.rhi);
+  HRESULT hr =
+      RHI::Create(windowProps.handle, windowProps.width, windowProps.height, windowProps.rhi);
 
   if (FAILED(hr)) {
     if (hr == -2147024894) {
@@ -77,15 +77,15 @@ Error Create(Window& windowProps) {
 }
 
 Error SetShow(Window& props, CmdShow shouldShow) {
-  if (props.windowHandle == 0) {
+  if (props.handle == 0) {
     return Error{PlatformError, "Window Handle is NULL"};
   }
-  ShowWindow(props.windowHandle, shouldShow);
+  ShowWindow(props.handle, shouldShow);
   return Error{};
 }
 
-Error Update(Window& props) {
-  if (props.windowHandle == 0) {
+Error Update(Window& window) {
+  if (window.handle == 0) {
     return Error{PlatformError, "Window handle is NULL"};
   }
 
@@ -93,9 +93,10 @@ Error Update(Window& props) {
 
   while (PeekMessage(&msg, nullptr, 0, 0, PM_REMOVE)) {
     if (msg.message == WM_QUIT) {
-      props.windowHandle = 0;
+      window.handle = 0;
       return Error{Exit, "Window was closed"};
     }
+    window.rhi->Update();
     TranslateMessage(&msg);
     DispatchMessage(&msg);
   }
