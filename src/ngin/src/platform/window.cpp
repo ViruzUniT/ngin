@@ -18,6 +18,12 @@ Ngin::Window::Window* GetWindow(HWND hwnd) {
 LRESULT CALLBACK WndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam) {
   Ngin::Window::Window* window = GetWindow(hwnd);
   switch (message) {
+    case WM_KEYDOWN:
+      if (wParam == VK_F11) {
+        Ngin::logDebug(std::format("Setting window fullscreen: {}", !window->fullscreen));
+        Ngin::Window::SetFullscreen(*window, !window->fullscreen);
+      }
+      return 0;
     case WM_CREATE:
       Ngin::logTrace("Window created :)");
       return 0;
@@ -152,6 +158,33 @@ void Resize(Window& window) {
 
     window.rhi->Resize(window.width, window.height);
   }
+}
+
+Error SetFullscreen(Window& window, bool enable) {
+  window.fullscreen = enable;
+  DWORD style = WS_OVERLAPPEDWINDOW | WS_VISIBLE;
+  DWORD exStyle = WS_EX_OVERLAPPEDWINDOW | WS_EX_APPWINDOW;
+
+  if (window.fullscreen) {
+    style = WS_POPUP | WS_VISIBLE;
+    exStyle = WS_EX_APPWINDOW;
+  }
+  SetWindowLongW(window.hwnd, GWL_STYLE, style);
+  SetWindowLongW(window.hwnd, GWL_EXSTYLE, exStyle);
+  if (window.fullscreen) {
+    HMONITOR monitor = MonitorFromWindow(window.hwnd, MONITOR_DEFAULTTONEAREST);
+    MONITORINFO monitorInfo{};
+    monitorInfo.cbSize = sizeof(monitorInfo);
+    if (GetMonitorInfo(monitor, &monitorInfo)) {
+      SetWindowPos(window.hwnd, nullptr, monitorInfo.rcMonitor.left, monitorInfo.rcMonitor.top,
+          monitorInfo.rcMonitor.right - monitorInfo.rcMonitor.left,
+          monitorInfo.rcMonitor.bottom - monitorInfo.rcMonitor.top, SWP_NOZORDER);
+      Resize(window);
+    }
+  } else {
+    SetShow(window, ShowMaximized);
+  }
+  return Error{};
 }
 
 Error Close(Window& window) {

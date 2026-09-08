@@ -7,11 +7,7 @@
 
 namespace Ngin {
 namespace Window {
-enum CmdShow {
-  Hide = 0,
-  ShowNormal = 1,
-  Show = 5,
-};
+enum CmdShow { Hide = 0, ShowNormal = 1, ShowMaximized = 3, Show = 5 };
 
 struct Window {
   uint16_t width;
@@ -20,6 +16,7 @@ struct Window {
   std::string className;
   HWND hwnd = nullptr;
   ATOM w_class = 0;
+  bool fullscreen = false;
 
   Scope<RHI> rhi;
 
@@ -32,6 +29,7 @@ Error Create(Window& window);
 Error SetShow(Window& window, CmdShow shouldShow);
 Error Update(Window& window);
 void Resize(Window& window);
+Error SetFullscreen(Window& window, bool enable);
 Error Close(Window& window);
 }  // namespace Window
 }  // namespace Ngin
