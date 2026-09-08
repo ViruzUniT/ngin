@@ -64,6 +64,7 @@ struct RHI : NonCopyable {
   }
 
   ~RHI() {
+    Flush(GetFrameCount());
     if (FenceEvent)
       CloseHandle(FenceEvent);
   }
@@ -71,6 +72,16 @@ struct RHI : NonCopyable {
   Error Update();
   Error SignalAndWait();
   Error ExecuteCommandList();
+  Error Present();
+
+  inline void Flush(size_t count) {
+    for (size_t i = 0; i < count; i++) {
+      SignalAndWait();
+    }
+  }
+
+ public:
+  static uint8_t GetFrameCount() { return 2; }
 
  private:
   uint64_t FenceValue = 0;

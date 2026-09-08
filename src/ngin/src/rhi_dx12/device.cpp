@@ -84,7 +84,17 @@ HRESULT RHI::Create(HWND hwnd, uint16_t windowWidth, uint16_t windowHeight, Scop
   return hr;
 }
 
-Error RHI::Update() { return ExecuteCommandList(); }
+Error RHI::Update() {
+  static Error err;
+  err = ExecuteCommandList();
+  if (err.code != None)
+    return err;
+
+  err = Present();
+  if (err.code != None)
+    return err;
+  return err;
+}
 
 Error RHI::SignalAndWait() {
   CmdQueue->Signal(Fence.get(), ++FenceValue);
@@ -111,6 +121,15 @@ Error RHI::ExecuteCommandList() {
   // return Error{Unknown, "Cmd list was not closed, but not shure if its a bad thing"};
   return Error{};
 }
+
+Error RHI::Present() {
+  HRESULT hr = SwapChain->Present(1, 0);
+  if (FAILED(hr)) {
+    return Error{Unknown, std::format("Presentation of the SwapChain failed: {}", hr)};
+  }
+  return Error{};
+}
+
 }  // namespace Ngin
 
 namespace Ngin {
@@ -155,7 +174,7 @@ HRESULT RHI::CreateSwapChain(IDXGIFactory7* factory, ComScope<IDXGISwapChain4>& 
   desc.Stereo = false;
   desc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
   desc.BufferUsage = DXGI_USAGE_BACK_BUFFER | DXGI_USAGE_RENDER_TARGET_OUTPUT;
-  desc.BufferCount = 2;
+  desc.BufferCount = GetFrameCount();
   desc.SampleDesc.Count = 1;
   desc.SampleDesc.Quality = 0;
   desc.SwapEffect = DXGI_SWAP_EFFECT_FLIP_DISCARD;

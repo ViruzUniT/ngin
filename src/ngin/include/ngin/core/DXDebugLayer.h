@@ -21,7 +21,6 @@ class DXDebugLayer : Ngin::NonCopyable {
 #ifdef NGIN_DEBUG
   Ngin::ComScope<ID3D12Debug5> m_d3d12Debug;
   Ngin::ComScope<IDXGIDebug1> m_dxgiDebug;
-  Ngin::DebugOutputToStdout dbg;
 #endif
 
  public:
