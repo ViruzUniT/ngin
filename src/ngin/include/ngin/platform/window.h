@@ -19,6 +19,8 @@ struct Window {
   std::string name;
   std::string className = "NginWindow";
   HWND handle = nullptr;
+  ATOM w_class = 0;
+
   Scope<RHI> rhi;
 
   Window(uint16_t width, uint16_t height, std::string_view name, std::string_view className)

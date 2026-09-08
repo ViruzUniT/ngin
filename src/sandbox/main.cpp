@@ -18,8 +18,11 @@ int main() {
     Ngin::Window::SetShow(window, Ngin::Window::CmdShow::ShowNormal);
     Ngin::logInfo("Sandbox started.");
     DXDebugLayer::Get().Report();
+    Ngin::logInfo("Updating Sandbox");
     Ngin::Error state = Ngin::Window::Update(window);
+    Ngin::logInfo("Entering main loop");
     while (state.code <= Ngin::ErrorCode::None) {
+      state = Ngin::Window::Update(window);
       // Sleep(1);
     }
     Ngin::logInfo("Sandbox terminating.");

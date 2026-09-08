@@ -26,11 +26,15 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam) 
 
 namespace Ngin {
 namespace Window {
-Error Create(Window& windowProps) {
-  WNDCLASS wc;
+Error Create(Window& window) {
+  WNDCLASSEXW wc;
   HINSTANCE instance = GetModuleHandle(nullptr);
+  std::wstring className(window.className.begin(), window.className.end());
+  std::wstring windowName(window.name.begin(), window.name.end());
 
+  logTrace("Setting wndClass desc");
   // wc.style = CS_VREDRAW | CS_HREDRAW;
+  wc.cbSize = sizeof(wc);
   wc.style = CS_OWNDC;
   wc.lpfnWndProc = WndProc;
   wc.cbClsExtra = 0;
@@ -40,10 +44,12 @@ Error Create(Window& windowProps) {
   wc.hCursor = LoadCursor(0, IDC_ARROW);
   wc.hbrBackground = nullptr;
   wc.lpszMenuName = nullptr;
-  wc.lpszClassName = windowProps.className.c_str();
+  wc.lpszClassName = className.c_str();
   wc.hIcon = LoadIcon(nullptr, IDI_APPLICATION);
 
-  if (!RegisterClassA(&wc)) {
+  logTrace("Registering class");
+  window.w_class = RegisterClassExW(&wc);
+  if (!window.w_class) {
     Ngin::logError(std::format("Creating window failed. Couldnt RegisterClass Error code {}",
         GetLastError()));
     return Error{PlatformError,
@@ -51,11 +57,12 @@ Error Create(Window& windowProps) {
             GetLastError())};
   }
 
-  windowProps.handle = CreateWindowExA(0, windowProps.className.c_str(), windowProps.name.c_str(),
-      WS_OVERLAPPEDWINDOW, CW_USEDEFAULT, CW_USEDEFAULT, windowProps.width, windowProps.height,
-      NULL, NULL, instance, NULL);
+  logTrace("Creating windowex");
+  window.handle = CreateWindowExW(WS_EX_OVERLAPPEDWINDOW | WS_EX_APPWINDOW, className.c_str(),
+      windowName.c_str(), WS_OVERLAPPEDWINDOW, CW_USEDEFAULT, CW_USEDEFAULT, window.width,
+      window.height, nullptr, nullptr, instance, nullptr);
 
-  if (windowProps.handle == nullptr) {
+  if (window.handle == nullptr) {
     Ngin::logError(std::format("Creating Window failed: Couldnt CreateWindowEx Error code {}",
         GetLastError()));
     return Error{PlatformError,
@@ -63,8 +70,8 @@ Error Create(Window& windowProps) {
             GetLastError())};
   }
 
-  HRESULT hr =
-      RHI::Create(windowProps.handle, windowProps.width, windowProps.height, windowProps.rhi);
+  logTrace("Creating RHI");
+  HRESULT hr = RHI::Create(window.handle, window.width, window.height, window.rhi);
 
   if (FAILED(hr)) {
     if (hr == -2147024894) {
@@ -98,9 +105,21 @@ Error Update(Window& window) {
       window.handle = 0;
       return Error{Exit, "Window was closed"};
     }
-    window.rhi->Update();
     TranslateMessage(&msg);
     DispatchMessage(&msg);
+    window.rhi->Update();
+  }
+  return Error{};
+}
+
+Error Close(Window& window) {
+  if (window.handle) {
+    DestroyWindow(window.handle);
+    window.handle = nullptr;
+  }
+  if (window.w_class) {
+    std::wstring className(window.className.begin(), window.className.end());
+    UnregisterClassW(className.c_str(), GetModuleHandle(nullptr));
   }
   return Error{};
 }
