@@ -73,6 +73,7 @@ struct RHI : NonCopyable {
   Error SignalAndWait();
   Error ExecuteCommandList();
   Error Present();
+  Error Resize(uint16_t width, uint16_t height);
 
   inline void Flush(size_t count) {
     for (size_t i = 0; i < count; i++) {
@@ -98,6 +99,9 @@ struct RHI : NonCopyable {
   ComScope<ID3D12RootSignature> RootSignature;
   ComScope<ID3D12PipelineState> PipelineState;
   List<ComScope<ID3D12Resource>> RenderTargets;
+
+  static const uint32_t SwapChainFlags =
+      DXGI_SWAP_CHAIN_FLAG_ALLOW_MODE_SWITCH | DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING;
 
   static HRESULT CreateCommandQueue(ID3D12Device10* device,
       ComScope<ID3D12CommandQueue>& cmdQueue);

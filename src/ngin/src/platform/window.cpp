@@ -8,10 +8,25 @@
 std::unordered_map<HWND, Ngin::Window::Window*> windows;
 std::vector<HWND> windowsToClose;
 
+Ngin::Window::Window* GetWindow(HWND hwnd) {
+  if (windows.contains(hwnd)) {
+    return windows.at(hwnd);
+  }
+  return nullptr;
+}
+
 LRESULT CALLBACK WndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam) {
+  Ngin::Window::Window* window = GetWindow(hwnd);
   switch (message) {
     case WM_CREATE:
       Ngin::logTrace("Window created :)");
+      return 0;
+    case WM_SIZE:
+      if (lParam && (HIWORD(lParam) != window->height || LOWORD(lParam) != window->width) &&
+          window != nullptr) {
+        Ngin::logTrace("Resizing window");
+        Resize(*window);
+      }
       return 0;
     case WM_CLOSE:
       windowsToClose.push_back(hwnd);
@@ -59,11 +74,11 @@ Error Create(Window& window) {
   }
 
   logTrace("Creating windowex");
-  window.handle = CreateWindowExW(WS_EX_OVERLAPPEDWINDOW | WS_EX_APPWINDOW, className.c_str(),
+  window.hwnd = CreateWindowExW(WS_EX_OVERLAPPEDWINDOW | WS_EX_APPWINDOW, className.c_str(),
       windowName.c_str(), WS_OVERLAPPEDWINDOW, CW_USEDEFAULT, CW_USEDEFAULT, window.width,
       window.height, nullptr, nullptr, instance, nullptr);
 
-  if (window.handle == nullptr) {
+  if (window.hwnd == nullptr) {
     Ngin::logError(std::format("Creating Window failed: Couldnt CreateWindowEx Error code {}",
         GetLastError()));
     return Error{PlatformError,
@@ -72,7 +87,7 @@ Error Create(Window& window) {
   }
 
   logTrace("Creating RHI");
-  HRESULT hr = RHI::Create(window.handle, window.width, window.height, window.rhi);
+  HRESULT hr = RHI::Create(window.hwnd, window.width, window.height, window.rhi);
 
   if (FAILED(hr)) {
     if (hr == -2147024894) {
@@ -83,16 +98,16 @@ Error Create(Window& window) {
     return Error{GraphicsError, std::format("RHI creation failed: {}", hr)};
   }
 
-  windows.insert_or_assign(window.handle, &window);
+  windows.insert_or_assign(window.hwnd, &window);
 
   return Error{};
 }
 
 Error SetShow(Window& props, CmdShow shouldShow) {
-  if (props.handle == 0) {
+  if (props.hwnd == 0) {
     return Error{PlatformError, "Window Handle is NULL"};
   }
-  ShowWindow(props.handle, shouldShow);
+  ShowWindow(props.hwnd, shouldShow);
   return Error{};
 }
 
@@ -108,7 +123,7 @@ void CheckForClosableWindows() {
 }
 
 Error Update(Window& window) {
-  if (window.handle == 0) {
+  if (window.hwnd == 0) {
     return Error{PlatformError, "Window handle is NULL"};
   }
 
@@ -119,7 +134,7 @@ Error Update(Window& window) {
   while (PeekMessage(&msg, nullptr, 0, 0, PM_REMOVE)) {
     if (msg.message == WM_QUIT) {
       Close(window);
-      window.handle = 0;
+      window.hwnd = 0;
       return Error{Exit, "Window was closed"};
     }
     TranslateMessage(&msg);
@@ -129,11 +144,21 @@ Error Update(Window& window) {
   return Error{};
 }
 
+void Resize(Window& window) {
+  RECT cr;
+  if (GetClientRect(window.hwnd, &cr)) {
+    window.width = cr.right - cr.left;
+    window.height = cr.bottom - cr.top;
+
+    window.rhi->Resize(window.width, window.height);
+  }
+}
+
 Error Close(Window& window) {
-  if (window.handle) {
-    DestroyWindow(window.handle);
-    windows.erase(window.handle);
-    window.handle = nullptr;
+  if (window.hwnd) {
+    DestroyWindow(window.hwnd);
+    windows.erase(window.hwnd);
+    window.hwnd = nullptr;
   }
   if (window.w_class) {
     std::wstring className(window.className.begin(), window.className.end());
@@ -141,5 +166,6 @@ Error Close(Window& window) {
   }
   return Error{};
 }
+
 }  // namespace Window
 }  // namespace Ngin

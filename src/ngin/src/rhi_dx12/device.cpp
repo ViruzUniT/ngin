@@ -130,6 +130,16 @@ Error RHI::Present() {
   return Error{};
 }
 
+Error RHI::Resize(uint16_t width, uint16_t height) {
+  Flush(GetFrameCount());
+  HRESULT hr = SwapChain->ResizeBuffers(GetFrameCount(), width, height, DXGI_FORMAT_UNKNOWN,
+      SwapChainFlags);
+  if (FAILED(hr)) {
+    return Error{Unknown, std::format("SwapChain could not be resized: {}", hr)};
+  }
+  return Error{};
+}
+
 }  // namespace Ngin
 
 namespace Ngin {
@@ -180,7 +190,7 @@ HRESULT RHI::CreateSwapChain(IDXGIFactory7* factory, ComScope<IDXGISwapChain4>& 
   desc.SwapEffect = DXGI_SWAP_EFFECT_FLIP_DISCARD;
   desc.Scaling = DXGI_SCALING_STRETCH;
   desc.AlphaMode = DXGI_ALPHA_MODE_IGNORE;
-  desc.Flags = DXGI_SWAP_CHAIN_FLAG_ALLOW_MODE_SWITCH | DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING;
+  desc.Flags = SwapChainFlags;
 
   DXGI_SWAP_CHAIN_FULLSCREEN_DESC descFull = {};
   descFull.Windowed = true;

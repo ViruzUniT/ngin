@@ -18,7 +18,7 @@ struct Window {
   uint16_t height;
   std::string name;
   std::string className;
-  HWND handle = nullptr;
+  HWND hwnd = nullptr;
   ATOM w_class = 0;
 
   Scope<RHI> rhi;
@@ -31,6 +31,7 @@ struct Window {
 Error Create(Window& window);
 Error SetShow(Window& window, CmdShow shouldShow);
 Error Update(Window& window);
+void Resize(Window& window);
 Error Close(Window& window);
 }  // namespace Window
 }  // namespace Ngin
