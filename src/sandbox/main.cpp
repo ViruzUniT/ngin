@@ -8,15 +8,16 @@ int main() {
   Ngin::logInfo("Sandbox starting.");
   {
     auto window = Ngin::Window::Window(1200, 720, "test", "test");
-    Ngin::ErrorCode err = Ngin::Window::Create(window);
-    if (err != Ngin::ErrorCode::None) {
-      Ngin::logFatal(std::format("Window could not be created {}", static_cast<int>(err)));
+    Ngin::Error err = Ngin::Window::Create(window);
+    if (err.code != Ngin::ErrorCode::None) {
+      Ngin::logFatal(std::format("Window could not be created {}, {}", static_cast<int>(err.code),
+          err.message));
       return 1;
     }
 
     Ngin::Window::SetShow(window, Ngin::Window::CmdShow::ShowNormal);
     Ngin::logInfo("Sandbox started.");
-    while (Ngin::Window::Update(window) == Ngin::ErrorCode::None) {
+    while (Ngin::Window::Update(window).code == Ngin::ErrorCode::None) {
       // Sleep(1);
     }
     Ngin::logInfo("Sandbox terminating.");

@@ -26,7 +26,7 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam) 
 
 namespace Ngin {
 namespace Window {
-ErrorCode Create(Window& windowProps) {
+Error Create(Window& windowProps) {
   WNDCLASS wc;
   HINSTANCE instance = GetModuleHandleA(nullptr);
 
@@ -44,7 +44,9 @@ ErrorCode Create(Window& windowProps) {
   if (!RegisterClassA(&wc)) {
     Ngin::logError(std::format("Creating window failed. Couldnt RegisterClass Error code {}",
         GetLastError()));
-    return ErrorCode::PlatformError;
+    return Error{PlatformError,
+        std::format("Creating window failed. Couldnt RegisterClass Error code {}",
+            GetLastError())};
   }
 
   windowProps.windowHandle = CreateWindowExA(0, windowProps.className.c_str(),
@@ -54,7 +56,9 @@ ErrorCode Create(Window& windowProps) {
   if (windowProps.windowHandle == nullptr) {
     Ngin::logError(std::format("Creating Window failed: Couldnt CreateWindowEx Error code {}",
         GetLastError()));
-    return ErrorCode::PlatformError;
+    return Error{PlatformError,
+        std::format("Creating Window failed: Couldnt CreateWindowEx Error code {}",
+            GetLastError())};
   }
 
   HRESULT hr = RHI::Create(windowProps.windowHandle, windowProps.width, windowProps.height,
@@ -63,26 +67,26 @@ ErrorCode Create(Window& windowProps) {
   if (FAILED(hr)) {
     if (hr == -2147024894) {
       Ngin::logError("Shader file could not be found");
-      return ErrorCode::FileNotFound;
+      return Error{FileNotFound, "Shader file could not be found"};
     }
     Ngin::logError(std::format("RHI creation failed: {}", hr));
-    return ErrorCode::GraphicsError;
+    return Error{GraphicsError, std::format("RHI creation failed: {}", hr)};
   }
 
-  return ErrorCode::None;
+  return Error{None};
 }
 
-ErrorCode SetShow(Window& props, CmdShow shouldShow) {
+Error SetShow(Window& props, CmdShow shouldShow) {
   if (props.windowHandle == 0) {
-    return ErrorCode::PlatformError;
+    return Error{PlatformError, "Window Handle is NULL"};
   }
   ShowWindow(props.windowHandle, shouldShow);
-  return ErrorCode::None;
+  return Error{None};
 }
 
-ErrorCode Update(Window& props) {
+Error Update(Window& props) {
   if (props.windowHandle == 0) {
-    return ErrorCode::PlatformError;
+    return Error{PlatformError, "Window handle is NULL"};
   }
 
   MSG msg;
@@ -90,12 +94,12 @@ ErrorCode Update(Window& props) {
   while (PeekMessage(&msg, nullptr, 0, 0, PM_REMOVE)) {
     if (msg.message == WM_QUIT) {
       props.windowHandle = 0;
-      return ErrorCode::PlatformError;
+      return Error{Exit, "Window was closed"};
     }
     TranslateMessage(&msg);
     DispatchMessage(&msg);
   }
-  return ErrorCode::None;
+  return Error{None};
 }
 }  // namespace Window
 }  // namespace Ngin
