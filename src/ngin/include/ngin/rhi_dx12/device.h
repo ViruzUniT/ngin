@@ -16,8 +16,8 @@ struct RHI : NonCopyable {
     cmdQueue = std::move(other.cmdQueue);
     fence = std::move(other.fence);
     swapChain = std::move(other.swapChain);
-    // other.ReleaseBuffers();
-    // GetBuffers(SwapChain, Buffers);
+    other.ReleaseBuffers();
+    GetBuffers(swapChain, buffers);
     cmdAlloc = std::move(other.cmdAlloc);
     cmdList = std::move(other.cmdList);
     rtvHeap = std::move(other.rtvHeap);
@@ -34,8 +34,8 @@ struct RHI : NonCopyable {
     cmdQueue = std::move(other.cmdQueue);
     fence = std::move(other.fence);
     swapChain = std::move(other.swapChain);
-    // other.ReleaseBuffers();
-    // GetBuffers(SwapChain, Buffers);
+    other.ReleaseBuffers();
+    GetBuffers(swapChain, buffers);
     cmdAlloc = std::move(other.cmdAlloc);
     cmdList = std::move(other.cmdList);
     rtvHeap = std::move(other.rtvHeap);
@@ -47,6 +47,7 @@ struct RHI : NonCopyable {
     return *this;
   }
 
+ private:
   RHI(ComScope<ID3D12Device10>& device, ComScope<ID3D12CommandQueue>& cmdQueue,
       ComScope<ID3D12Fence1>& fence, HANDLE fenceEvent, ComScope<IDXGISwapChain4>& swapChain,
       ComScope<ID3D12CommandAllocator>& cmdAlloc, ComScope<ID3D12GraphicsCommandList7>& cmdList,
@@ -54,20 +55,21 @@ struct RHI : NonCopyable {
       ComScope<ID3D12RootSignature>& rootSignature, ComScope<ID3D12PipelineState>& pipelineState,
       List<ComScope<ID3D12Resource>>& renderTargets)
       : fenceEvent(fenceEvent) {
-    device = std::move(device);
-    cmdQueue = std::move(cmdQueue);
-    fence = std::move(fence);
-    swapChain = std::move(swapChain);
-    // GetBuffers(SwapChain, Buffers);
-    cmdAlloc = std::move(cmdAlloc);
-    cmdList = std::move(cmdList);
-    rtvHeap = std::move(rtvHeap);
-    factory = std::move(factory);
-    rootSignature = std::move(rootSignature);
-    renderTargets = std::move(renderTargets);
-    pipelineState = std::move(pipelineState);
+    this->device = std::move(device);
+    this->cmdQueue = std::move(cmdQueue);
+    this->fence = std::move(fence);
+    this->swapChain = std::move(swapChain);
+    this->GetBuffers(this->swapChain, this->buffers);
+    this->cmdAlloc = std::move(cmdAlloc);
+    this->cmdList = std::move(cmdList);
+    this->rtvHeap = std::move(rtvHeap);
+    this->factory = std::move(factory);
+    this->rootSignature = std::move(rootSignature);
+    this->renderTargets = std::move(renderTargets);
+    this->pipelineState = std::move(pipelineState);
   }
 
+ public:
   ~RHI() {
     Flush(FRAME_COUNT);
     if (fenceEvent)

@@ -78,8 +78,8 @@ HRESULT RHI::Create(HWND hwnd, uint16_t windowWidth, uint16_t windowHeight, Scop
   logDebug("Creating RHI");
   if (rhi.get() != nullptr)
     rhi.reset();
-  rhi = std::make_unique<RHI>(device, cmdQueue, fence, fenceEvent, swapChain, cmdAlloc, cmdList,
-      rtvHeap, factory, rootSignature, pipelineState, renderTargets);
+  rhi.reset(new RHI(device, cmdQueue, fence, fenceEvent, swapChain, cmdAlloc, cmdList, rtvHeap,
+      factory, rootSignature, pipelineState, renderTargets));
 
   return hr;
 }
