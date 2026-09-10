@@ -1,3 +1,4 @@
+#include <ngin/core/DXDebugLayer.h>
 #include <ngin/core/base.h>
 #include <ngin/pch.h>
 #include <ngin/platform/window.h>
@@ -31,7 +32,9 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam) 
       if (lParam && (HIWORD(lParam) != window->height || LOWORD(lParam) != window->width) &&
           window != nullptr) {
         Ngin::logTrace("Resizing window");
-        Resize(*window);
+        Ngin::Error err = Resize(*window);
+        if (err.code != Ngin::ErrorCode::None)
+          Ngin::logError(err.message);
       }
       return 0;
     case WM_CLOSE:
@@ -109,11 +112,11 @@ Error Create(Window& window) {
   return Error{};
 }
 
-Error SetShow(Window& props, CmdShow shouldShow) {
+Error SetShow(Window& props, CmdShow showType) {
   if (props.hwnd == 0) {
     return Error{PlatformError, "Window Handle is NULL"};
   }
-  ShowWindow(props.hwnd, shouldShow);
+  ShowWindow(props.hwnd, showType);
   return Error{};
 }
 
@@ -150,14 +153,19 @@ Error Update(Window& window) {
   return Error{};
 }
 
-void Resize(Window& window) {
+Error Resize(Window& window) {
   RECT cr;
   if (GetClientRect(window.hwnd, &cr)) {
+    window.rhi->ReleaseBuffers();
     window.width = cr.right - cr.left;
     window.height = cr.bottom - cr.top;
 
-    window.rhi->Resize(window.width, window.height);
+    Error err = window.rhi->Resize(window.width, window.height);
+    if (err.code)
+      return err;
+    return window.rhi->GetBuffers();
   }
+  return Error{Unknown, "Couldnt get Client Rect for Resizing"};
 }
 
 Error SetFullscreen(Window& window, bool enable) {

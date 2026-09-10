@@ -11,35 +11,39 @@ struct RHI : NonCopyable {
   RHI() = delete;
   static HRESULT Create(HWND hwnd, uint16_t windowWidth, uint16_t windowHeight, Scope<RHI>& rhi);
 
-  RHI(RHI&& other) : FenceEvent(other.FenceEvent) {
-    Device = std::move(other.Device);
-    CmdQueue = std::move(other.CmdQueue);
-    Fence = std::move(other.Fence);
-    SwapChain = std::move(other.SwapChain);
-    CmdAlloc = std::move(other.CmdAlloc);
-    CmdList = std::move(other.CmdList);
-    RtvHeap = std::move(other.RtvHeap);
-    Factory = std::move(other.Factory);
-    RootSignature = std::move(other.RootSignature);
-    RenderTargets = std::move(other.RenderTargets);
-    PipelineState = std::move(other.PipelineState);
+  RHI(RHI&& other) : fenceEvent(other.fenceEvent) {
+    device = std::move(other.device);
+    cmdQueue = std::move(other.cmdQueue);
+    fence = std::move(other.fence);
+    swapChain = std::move(other.swapChain);
+    // other.ReleaseBuffers();
+    // GetBuffers(SwapChain, Buffers);
+    cmdAlloc = std::move(other.cmdAlloc);
+    cmdList = std::move(other.cmdList);
+    rtvHeap = std::move(other.rtvHeap);
+    factory = std::move(other.factory);
+    rootSignature = std::move(other.rootSignature);
+    renderTargets = std::move(other.renderTargets);
+    pipelineState = std::move(other.pipelineState);
   }
   RHI& operator=(RHI&& other) {
     if (this == &other)
       return *this;
 
-    Device = std::move(other.Device);
-    CmdQueue = std::move(other.CmdQueue);
-    Fence = std::move(other.Fence);
-    SwapChain = std::move(other.SwapChain);
-    CmdAlloc = std::move(other.CmdAlloc);
-    CmdList = std::move(other.CmdList);
-    RtvHeap = std::move(other.RtvHeap);
-    Factory = std::move(other.Factory);
-    RootSignature = std::move(other.RootSignature);
-    RenderTargets = std::move(other.RenderTargets);
-    PipelineState = std::move(other.PipelineState);
-    FenceEvent = other.FenceEvent;
+    device = std::move(other.device);
+    cmdQueue = std::move(other.cmdQueue);
+    fence = std::move(other.fence);
+    swapChain = std::move(other.swapChain);
+    // other.ReleaseBuffers();
+    // GetBuffers(SwapChain, Buffers);
+    cmdAlloc = std::move(other.cmdAlloc);
+    cmdList = std::move(other.cmdList);
+    rtvHeap = std::move(other.rtvHeap);
+    factory = std::move(other.factory);
+    rootSignature = std::move(other.rootSignature);
+    renderTargets = std::move(other.renderTargets);
+    pipelineState = std::move(other.pipelineState);
+    fenceEvent = other.fenceEvent;
     return *this;
   }
 
@@ -49,24 +53,25 @@ struct RHI : NonCopyable {
       ComScope<ID3D12DescriptorHeap>& rtvHeap, ComScope<IDXGIFactory7>& factory,
       ComScope<ID3D12RootSignature>& rootSignature, ComScope<ID3D12PipelineState>& pipelineState,
       List<ComScope<ID3D12Resource>>& renderTargets)
-      : FenceEvent(fenceEvent) {
-    Device = std::move(device);
-    CmdQueue = std::move(cmdQueue);
-    Fence = std::move(fence);
-    SwapChain = std::move(swapChain);
-    CmdAlloc = std::move(cmdAlloc);
-    CmdList = std::move(cmdList);
-    RtvHeap = std::move(rtvHeap);
-    Factory = std::move(factory);
-    RootSignature = std::move(rootSignature);
-    RenderTargets = std::move(renderTargets);
-    PipelineState = std::move(pipelineState);
+      : fenceEvent(fenceEvent) {
+    device = std::move(device);
+    cmdQueue = std::move(cmdQueue);
+    fence = std::move(fence);
+    swapChain = std::move(swapChain);
+    // GetBuffers(SwapChain, Buffers);
+    cmdAlloc = std::move(cmdAlloc);
+    cmdList = std::move(cmdList);
+    rtvHeap = std::move(rtvHeap);
+    factory = std::move(factory);
+    rootSignature = std::move(rootSignature);
+    renderTargets = std::move(renderTargets);
+    pipelineState = std::move(pipelineState);
   }
 
   ~RHI() {
-    Flush(GetFrameCount());
-    if (FenceEvent)
-      CloseHandle(FenceEvent);
+    Flush(FRAME_COUNT);
+    if (fenceEvent)
+      CloseHandle(fenceEvent);
   }
 
   Error Update();
@@ -74,6 +79,17 @@ struct RHI : NonCopyable {
   Error ExecuteCommandList();
   Error Present();
   Error Resize(uint16_t width, uint16_t height);
+  inline Error GetBuffers() {
+    HRESULT hr = GetBuffers(swapChain, buffers);
+    if (FAILED(hr))
+      return Error{Unknown, std::format("Getting the buffers failed: {}", hr)};
+    return Error{};
+  }
+  inline void ReleaseBuffers() {
+    for (size_t i = 0; i < FRAME_COUNT; i++) {
+      buffers[i].reset();
+    }
+  }
 
   inline void Flush(size_t count) {
     for (size_t i = 0; i < count; i++) {
@@ -82,25 +98,26 @@ struct RHI : NonCopyable {
   }
 
  public:
-  static uint8_t GetFrameCount() { return 2; }
+  inline static constexpr uint8_t FRAME_COUNT = 2;
 
  private:
-  uint64_t FenceValue = 0;
-  HANDLE FenceEvent;
+  uint64_t fenceValue = 0;
+  HANDLE fenceEvent;
 
-  ComScope<ID3D12Device10> Device;
-  ComScope<ID3D12CommandQueue> CmdQueue;
-  ComScope<ID3D12Fence1> Fence;
-  ComScope<IDXGISwapChain4> SwapChain;
-  ComScope<ID3D12CommandAllocator> CmdAlloc;
-  ComScope<ID3D12GraphicsCommandList7> CmdList;
-  ComScope<ID3D12DescriptorHeap> RtvHeap;
-  ComScope<IDXGIFactory7> Factory;
-  ComScope<ID3D12RootSignature> RootSignature;
-  ComScope<ID3D12PipelineState> PipelineState;
-  List<ComScope<ID3D12Resource>> RenderTargets;
+  ComScope<ID3D12Device10> device;
+  ComScope<ID3D12CommandQueue> cmdQueue;
+  ComScope<ID3D12Fence1> fence;
+  ComScope<IDXGISwapChain4> swapChain;
+  ComScope<ID3D12Resource2> buffers[FRAME_COUNT];
+  ComScope<ID3D12CommandAllocator> cmdAlloc;
+  ComScope<ID3D12GraphicsCommandList7> cmdList;
+  ComScope<ID3D12DescriptorHeap> rtvHeap;
+  ComScope<IDXGIFactory7> factory;
+  ComScope<ID3D12RootSignature> rootSignature;
+  ComScope<ID3D12PipelineState> pipelineState;
+  List<ComScope<ID3D12Resource>> renderTargets;
 
-  static const uint32_t SwapChainFlags =
+  static const uint32_t SWAPCHAIN_FLAGS =
       DXGI_SWAP_CHAIN_FLAG_ALLOW_MODE_SWITCH | DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING;
 
   static HRESULT CreateCommandQueue(ID3D12Device10* device,
@@ -112,7 +129,9 @@ struct RHI : NonCopyable {
   static HRESULT CreateGraphicsCommandList7(ID3D12Device10* device,
       ComScope<ID3D12GraphicsCommandList7>& cmdList, ID3D12CommandAllocator* cmdAlloc);
   static HRESULT CreateSwapChain(IDXGIFactory7* factory, ComScope<IDXGISwapChain4>& swapChain,
-      ID3D12CommandQueue* cmdQueue, uint16_t width, uint16_t geight, HWND hwnd, bool windowed);
+      ID3D12CommandQueue* cmdQueue, uint16_t width, uint16_t height, HWND hwnd, bool windowed);
+  static HRESULT GetBuffers(ComScope<IDXGISwapChain4>& swapChain,
+      ComScope<ID3D12Resource2> buffers[]);
   static HRESULT CreateRtvHeap(ID3D12Device10* device, IDXGISwapChain4* swapChain,
       ComScope<ID3D12DescriptorHeap>& rtvHeap, List<ComScope<ID3D12Resource>>& renderTargets);
   static HRESULT CreateSignature(ID3D12Device10* device,

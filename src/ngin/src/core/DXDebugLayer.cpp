@@ -36,7 +36,6 @@ void DXDebugLayer::Shutdown() {
 
 void DXDebugLayer::Report() {
 #ifdef NGIN_DEBUG
-  Ngin::DebugOutputToStdout dbg;
   if (m_dxgiDebug) {
     Ngin::DebugOutputToStdout dbg;
     OutputDebugStringW(L"DXGI Reports living device objects:\n");

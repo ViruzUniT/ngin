@@ -16,6 +16,7 @@ int main() {
     }
 
     Ngin::Window::SetShow(window, Ngin::Window::CmdShow::ShowNormal);
+    // Ngin::Window::SetFullscreen(window, true);
     Ngin::logInfo("Sandbox started.");
     DXDebugLayer::Get().Report();
     Ngin::logInfo("Updating Sandbox");

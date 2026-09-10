@@ -97,10 +97,10 @@ Error RHI::Update() {
 }
 
 Error RHI::SignalAndWait() {
-  CmdQueue->Signal(Fence.get(), ++FenceValue);
-  HRESULT hr = Fence->SetEventOnCompletion(FenceValue, FenceEvent);
+  cmdQueue->Signal(fence.get(), ++fenceValue);
+  HRESULT hr = fence->SetEventOnCompletion(fenceValue, fenceEvent);
   if (SUCCEEDED(hr)) {
-    DWORD res = WaitForSingleObject(FenceEvent, 21000);
+    DWORD res = WaitForSingleObject(fenceEvent, 21000);
     if (res != WAIT_OBJECT_0) {
       logFatal(std::format("Fence Event has timed out :( {}", res));
       return Error{FenceTimeout, std::format("Fence Event has timed out :( {}", res)};
@@ -114,8 +114,8 @@ Error RHI::SignalAndWait() {
 
 Error RHI::ExecuteCommandList() {
   // if (SUCCEEDED(CmdList->Close())) {
-  ID3D12CommandList* list[] = {CmdList.get()};
-  CmdQueue->ExecuteCommandLists(1, list);
+  ID3D12CommandList* list[] = {cmdList.get()};
+  cmdQueue->ExecuteCommandLists(1, list);
   return SignalAndWait();
   // }
   // return Error{Unknown, "Cmd list was not closed, but not shure if its a bad thing"};
@@ -123,7 +123,7 @@ Error RHI::ExecuteCommandList() {
 }
 
 Error RHI::Present() {
-  HRESULT hr = SwapChain->Present(1, 0);
+  HRESULT hr = swapChain->Present(1, 0);
   if (FAILED(hr)) {
     return Error{Unknown, std::format("Presentation of the SwapChain failed: {}", hr)};
   }
@@ -131,15 +131,14 @@ Error RHI::Present() {
 }
 
 Error RHI::Resize(uint16_t width, uint16_t height) {
-  Flush(GetFrameCount());
-  HRESULT hr = SwapChain->ResizeBuffers(GetFrameCount(), width, height, DXGI_FORMAT_UNKNOWN,
-      SwapChainFlags);
+  Flush(FRAME_COUNT);
+  HRESULT hr =
+      swapChain->ResizeBuffers(FRAME_COUNT, width, height, DXGI_FORMAT_UNKNOWN, SWAPCHAIN_FLAGS);
   if (FAILED(hr)) {
     return Error{Unknown, std::format("SwapChain could not be resized: {}", hr)};
   }
   return Error{};
 }
-
 }  // namespace Ngin
 
 namespace Ngin {
@@ -184,13 +183,13 @@ HRESULT RHI::CreateSwapChain(IDXGIFactory7* factory, ComScope<IDXGISwapChain4>& 
   desc.Stereo = false;
   desc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
   desc.BufferUsage = DXGI_USAGE_BACK_BUFFER | DXGI_USAGE_RENDER_TARGET_OUTPUT;
-  desc.BufferCount = GetFrameCount();
+  desc.BufferCount = FRAME_COUNT;
   desc.SampleDesc.Count = 1;
   desc.SampleDesc.Quality = 0;
   desc.SwapEffect = DXGI_SWAP_EFFECT_FLIP_DISCARD;
   desc.Scaling = DXGI_SCALING_STRETCH;
   desc.AlphaMode = DXGI_ALPHA_MODE_IGNORE;
-  desc.Flags = SwapChainFlags;
+  desc.Flags = SWAPCHAIN_FLAGS;
 
   DXGI_SWAP_CHAIN_FULLSCREEN_DESC descFull = {};
   descFull.Windowed = true;
@@ -207,30 +206,41 @@ HRESULT RHI::CreateSwapChain(IDXGIFactory7* factory, ComScope<IDXGISwapChain4>& 
   return hr;
 }
 
-HRESULT RHI::CreateRtvHeap(ID3D12Device10* device, IDXGISwapChain4* swapChain,
-    ComScope<ID3D12DescriptorHeap>& rtvHeap, List<ComScope<ID3D12Resource>>& renderTargets) {
-  D3D12_DESCRIPTOR_HEAP_DESC rtvHeapDesc = {};
-  rtvHeapDesc.NumDescriptors = 2;
-  rtvHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_RTV;
-
-  HRESULT hr = device->CreateDescriptorHeap(&rtvHeapDesc, IID_PPV_ARGS(&rtvHeap));
-  if (FAILED(hr))
-    return hr;
-
-  renderTargets.resize(2);
-  UINT rtvIncrementSize =
-      device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
-
-  D3D12_CPU_DESCRIPTOR_HANDLE rtvHandle(rtvHeap->GetCPUDescriptorHandleForHeapStart());
-
-  for (UINT i = 0; i < 2; i++) {
-    hr = swapChain->GetBuffer(i, IID_PPV_ARGS(&renderTargets[i]));
+HRESULT RHI::GetBuffers(ComScope<IDXGISwapChain4>& swapChain,
+    ComScope<ID3D12Resource2> buffers[]) {
+  for (size_t i = 0; i < FRAME_COUNT; i++) {
+    HRESULT hr = swapChain->GetBuffer(i, IID_PPV_ARGS(&buffers[i]));
     if (FAILED(hr))
       return hr;
-    device->CreateRenderTargetView(renderTargets[i].get(), nullptr, rtvHandle);
-    rtvHandle.ptr += rtvIncrementSize;
   }
-  return hr;
+  return 0;
+}
+
+HRESULT RHI::CreateRtvHeap(ID3D12Device10* device, IDXGISwapChain4* swapChain,
+    ComScope<ID3D12DescriptorHeap>& rtvHeap, List<ComScope<ID3D12Resource>>& renderTargets) {
+  // D3D12_DESCRIPTOR_HEAP_DESC rtvHeapDesc = {};
+  // rtvHeapDesc.NumDescriptors = 2;
+  // rtvHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_RTV;
+  //
+  // HRESULT hr = device->CreateDescriptorHeap(&rtvHeapDesc, IID_PPV_ARGS(&rtvHeap));
+  // if (FAILED(hr))
+  //   return hr;
+  //
+  // renderTargets.resize(2);
+  // UINT rtvIncrementSize =
+  //     device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
+  //
+  // D3D12_CPU_DESCRIPTOR_HANDLE rtvHandle(rtvHeap->GetCPUDescriptorHandleForHeapStart());
+  //
+  // for (UINT i = 0; i < 2; i++) {
+  //   hr = swapChain->GetBuffer(i, IID_PPV_ARGS(&renderTargets[i]));
+  //   if (FAILED(hr))
+  //     return hr;
+  //   device->CreateRenderTargetView(renderTargets[i].get(), nullptr, rtvHandle);
+  //   rtvHandle.ptr += rtvIncrementSize;
+  // }
+  // return hr;
+  return 0;
 }
 
 HRESULT RHI::CreateSignature(ID3D12Device10* device, ComScope<ID3D12RootSignature>& rootSignature,

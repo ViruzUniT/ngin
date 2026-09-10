@@ -17,6 +17,7 @@ struct Window {
   HWND hwnd = nullptr;
   ATOM w_class = 0;
   bool fullscreen = false;
+  RECT windowPos;
 
   Scope<RHI> rhi;
 
@@ -26,9 +27,9 @@ struct Window {
 };
 
 Error Create(Window& window);
-Error SetShow(Window& window, CmdShow shouldShow);
+Error SetShow(Window& window, CmdShow showType);
 Error Update(Window& window);
-void Resize(Window& window);
+Error Resize(Window& window);
 Error SetFullscreen(Window& window, bool enable);
 Error Close(Window& window);
 }  // namespace Window
