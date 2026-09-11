@@ -1,6 +1,7 @@
 #pragma once
 #include <d3d12.h>
 #include <dxgi1_6.h>
+#include <ngin/core/DXDebugLayer.h>
 #include <ngin/core/types.h>
 #include <ngin/pch.h>
 
@@ -13,11 +14,12 @@ struct RHI : NonCopyable {
 
   RHI(RHI&& other) : fenceEvent(other.fenceEvent) {
     device = std::move(other.device);
+    DXDebugLayer::Get().InitDevice(this->device);
     cmdQueue = std::move(other.cmdQueue);
     fence = std::move(other.fence);
     swapChain = std::move(other.swapChain);
     other.ReleaseBuffers();
-    GetBuffers(swapChain, buffers);
+    GetBuffers(device, swapChain, buffers, rtvHeap, rtvHandles);
     cmdAlloc = std::move(other.cmdAlloc);
     cmdList = std::move(other.cmdList);
     rtvHeap = std::move(other.rtvHeap);
@@ -31,11 +33,12 @@ struct RHI : NonCopyable {
       return *this;
 
     device = std::move(other.device);
+    DXDebugLayer::Get().InitDevice(this->device);
     cmdQueue = std::move(other.cmdQueue);
     fence = std::move(other.fence);
     swapChain = std::move(other.swapChain);
     other.ReleaseBuffers();
-    GetBuffers(swapChain, buffers);
+    GetBuffers(device, swapChain, buffers, rtvHeap, rtvHandles);
     cmdAlloc = std::move(other.cmdAlloc);
     cmdList = std::move(other.cmdList);
     rtvHeap = std::move(other.rtvHeap);
@@ -48,21 +51,28 @@ struct RHI : NonCopyable {
   }
 
  private:
+  template <size_t N>
   RHI(ComScope<ID3D12Device10>& device, ComScope<ID3D12CommandQueue>& cmdQueue,
       ComScope<ID3D12Fence1>& fence, HANDLE fenceEvent, ComScope<IDXGISwapChain4>& swapChain,
       ComScope<ID3D12CommandAllocator>& cmdAlloc, ComScope<ID3D12GraphicsCommandList7>& cmdList,
-      ComScope<ID3D12DescriptorHeap>& rtvHeap, ComScope<IDXGIFactory7>& factory,
-      ComScope<ID3D12RootSignature>& rootSignature, ComScope<ID3D12PipelineState>& pipelineState,
-      List<ComScope<ID3D12Resource>>& renderTargets)
+      ComScope<ID3D12DescriptorHeap>& rtvHeap, Array<D3D12_CPU_DESCRIPTOR_HANDLE, N> rtvHandles,
+      ComScope<IDXGIFactory7>& factory, ComScope<ID3D12RootSignature>& rootSignature,
+      ComScope<ID3D12PipelineState>& pipelineState, List<ComScope<ID3D12Resource>>& renderTargets)
       : fenceEvent(fenceEvent) {
     this->device = std::move(device);
+    DXDebugLayer::Get().InitDevice(this->device);
     this->cmdQueue = std::move(cmdQueue);
     this->fence = std::move(fence);
     this->swapChain = std::move(swapChain);
-    this->GetBuffers(this->swapChain, this->buffers);
+    this->rtvHeap = std::move(rtvHeap);
+
+    for (size_t i = 0; i < FRAME_COUNT; i++) {
+      this->rtvHandles[i] = rtvHandles[i];
+    }
+    GetBuffers(this->device, this->swapChain, this->buffers, this->rtvHeap, this->rtvHandles);
+
     this->cmdAlloc = std::move(cmdAlloc);
     this->cmdList = std::move(cmdList);
-    this->rtvHeap = std::move(rtvHeap);
     this->factory = std::move(factory);
     this->rootSignature = std::move(rootSignature);
     this->renderTargets = std::move(renderTargets);
@@ -80,9 +90,11 @@ struct RHI : NonCopyable {
   Error SignalAndWait();
   Error ExecuteCommandList();
   Error Present();
+  Error BeginFrame();
+  Error EndFrame();
   Error Resize(uint16_t width, uint16_t height);
   inline Error GetBuffers() {
-    HRESULT hr = GetBuffers(swapChain, buffers);
+    HRESULT hr = GetBuffers(device, swapChain, buffers, rtvHeap, rtvHandles);
     if (FAILED(hr))
       return Error{Unknown, std::format("Getting the buffers failed: {}", hr)};
     return Error{};
@@ -100,7 +112,7 @@ struct RHI : NonCopyable {
   }
 
  public:
-  inline static constexpr uint8_t FRAME_COUNT = 2;
+  static constexpr uint8_t FRAME_COUNT = 2;
 
  private:
   uint64_t fenceValue = 0;
@@ -111,9 +123,11 @@ struct RHI : NonCopyable {
   ComScope<ID3D12Fence1> fence;
   ComScope<IDXGISwapChain4> swapChain;
   ComScope<ID3D12Resource2> buffers[FRAME_COUNT];
+  uint8_t currentBuffer = 0;
   ComScope<ID3D12CommandAllocator> cmdAlloc;
   ComScope<ID3D12GraphicsCommandList7> cmdList;
   ComScope<ID3D12DescriptorHeap> rtvHeap;
+  Array<D3D12_CPU_DESCRIPTOR_HANDLE, FRAME_COUNT> rtvHandles;
   ComScope<IDXGIFactory7> factory;
   ComScope<ID3D12RootSignature> rootSignature;
   ComScope<ID3D12PipelineState> pipelineState;
@@ -132,10 +146,12 @@ struct RHI : NonCopyable {
       ComScope<ID3D12GraphicsCommandList7>& cmdList, ID3D12CommandAllocator* cmdAlloc);
   static HRESULT CreateSwapChain(IDXGIFactory7* factory, ComScope<IDXGISwapChain4>& swapChain,
       ID3D12CommandQueue* cmdQueue, uint16_t width, uint16_t height, HWND hwnd, bool windowed);
-  static HRESULT GetBuffers(ComScope<IDXGISwapChain4>& swapChain,
-      ComScope<ID3D12Resource2> buffers[]);
+  static HRESULT GetBuffers(ID3D12Device10* device, ComScope<IDXGISwapChain4>& swapChain,
+      ComScope<ID3D12Resource2> buffers[], ID3D12DescriptorHeap* rtvHeap,
+      Array<D3D12_CPU_DESCRIPTOR_HANDLE, FRAME_COUNT>& rtvHandles);
   static HRESULT CreateRtvHeap(ID3D12Device10* device, IDXGISwapChain4* swapChain,
-      ComScope<ID3D12DescriptorHeap>& rtvHeap, List<ComScope<ID3D12Resource>>& renderTargets);
+      ComScope<ID3D12DescriptorHeap>& rtvHeap,
+      Array<D3D12_CPU_DESCRIPTOR_HANDLE, FRAME_COUNT>& rtvHandles);
   static HRESULT CreateSignature(ID3D12Device10* device,
       ComScope<ID3D12RootSignature>& rootSignature, ComScope<ID3DBlob>& signatureBlob,
       ComScope<ID3DBlob>& errorBlob);

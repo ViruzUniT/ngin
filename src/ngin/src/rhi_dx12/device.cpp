@@ -17,6 +17,7 @@ HRESULT RHI::Create(HWND hwnd, uint16_t windowWidth, uint16_t windowHeight, Scop
   ComScope<ID3D12CommandAllocator> cmdAlloc;
   ComScope<ID3D12GraphicsCommandList7> cmdList;
   ComScope<ID3D12DescriptorHeap> rtvHeap;
+  Array<D3D12_CPU_DESCRIPTOR_HANDLE, FRAME_COUNT> rtvHandles;
   ComScope<IDXGIFactory7> factory;
   ComScope<ID3D12RootSignature> rootSignature;
   ComScope<ID3DBlob> signatureBlob;
@@ -61,7 +62,7 @@ HRESULT RHI::Create(HWND hwnd, uint16_t windowWidth, uint16_t windowHeight, Scop
     return hr;
 
   logDebug("Creating Rtv Heap");
-  hr = CreateRtvHeap(device.get(), swapChain.get(), rtvHeap, renderTargets);
+  hr = CreateRtvHeap(device, swapChain, rtvHeap, rtvHandles);
   if (FAILED(hr))
     return hr;
 
@@ -79,7 +80,7 @@ HRESULT RHI::Create(HWND hwnd, uint16_t windowWidth, uint16_t windowHeight, Scop
   if (rhi.get() != nullptr)
     rhi.reset();
   rhi.reset(new RHI(device, cmdQueue, fence, fenceEvent, swapChain, cmdAlloc, cmdList, rtvHeap,
-      factory, rootSignature, pipelineState, renderTargets));
+      rtvHandles, factory, rootSignature, pipelineState, renderTargets));
 
   return hr;
 }
@@ -91,7 +92,7 @@ Error RHI::Update() {
     return err;
 
   err = Present();
-  if (err.code != None)
+  if (err)
     return err;
   return err;
 }
@@ -119,7 +120,6 @@ Error RHI::ExecuteCommandList() {
   return SignalAndWait();
   // }
   // return Error{Unknown, "Cmd list was not closed, but not shure if its a bad thing"};
-  return Error{};
 }
 
 Error RHI::Present() {
@@ -127,6 +127,49 @@ Error RHI::Present() {
   if (FAILED(hr)) {
     return Error{Unknown, std::format("Presentation of the SwapChain failed: {}", hr)};
   }
+  return Error{};
+}
+Error RHI::BeginFrame() {
+  currentBuffer = swapChain->GetCurrentBackBufferIndex();
+
+  HRESULT hr = cmdAlloc->Reset();
+  if (FAILED(hr))
+    return Error{Unknown, std::format("Command allocator reset failed: {}", hr)};
+
+  hr = cmdList->Reset(cmdAlloc.get(), pipelineState.get());
+  if (FAILED(hr))
+    return Error{Unknown, std::format("Command list reset failed: {}", hr)};
+
+  D3D12_RESOURCE_BARRIER barr = {};
+  barr.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
+  barr.Flags = D3D12_RESOURCE_BARRIER_FLAG_NONE;
+  barr.Transition.pResource = buffers[currentBuffer];
+  barr.Transition.Subresource = 0;
+  barr.Transition.StateBefore = D3D12_RESOURCE_STATE_PRESENT;
+  barr.Transition.StateAfter = D3D12_RESOURCE_STATE_RENDER_TARGET;
+
+  cmdList->ResourceBarrier(1, &barr);
+  cmdList->ClearRenderTargetView(rtvHandles[currentBuffer], (FLOAT[4]){.4f, .4f, .8f, 1.f}, 0,
+      nullptr);
+  cmdList->OMSetRenderTargets(1, &rtvHandles[currentBuffer], false, nullptr);
+
+  return Error{};
+}
+Error RHI::EndFrame() {
+  D3D12_RESOURCE_BARRIER barr = {};
+  barr.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
+  barr.Flags = D3D12_RESOURCE_BARRIER_FLAG_NONE;
+  barr.Transition.pResource = buffers[currentBuffer];
+  barr.Transition.Subresource = 0;
+  barr.Transition.StateBefore = D3D12_RESOURCE_STATE_RENDER_TARGET;
+  barr.Transition.StateAfter = D3D12_RESOURCE_STATE_PRESENT;
+
+  cmdList->ResourceBarrier(1, &barr);
+
+  HRESULT hr = cmdList->Close();
+  if (FAILED(hr))
+    return Error{Unknown, std::format("Command list close failed: {}", hr)};
+
   return Error{};
 }
 
@@ -206,40 +249,44 @@ HRESULT RHI::CreateSwapChain(IDXGIFactory7* factory, ComScope<IDXGISwapChain4>& 
   return hr;
 }
 
-HRESULT RHI::GetBuffers(ComScope<IDXGISwapChain4>& swapChain,
-    ComScope<ID3D12Resource2> buffers[]) {
+HRESULT RHI::GetBuffers(ID3D12Device10* device, ComScope<IDXGISwapChain4>& swapChain,
+    ComScope<ID3D12Resource2> buffers[], ID3D12DescriptorHeap* rtvHeap,
+    Array<D3D12_CPU_DESCRIPTOR_HANDLE, FRAME_COUNT>& rtvHandles) {
+  D3D12_RENDER_TARGET_VIEW_DESC desc{};
+  desc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+  desc.ViewDimension = D3D12_RTV_DIMENSION_TEXTURE2D;
+  desc.Texture2D.MipSlice = 0;
+  desc.Texture2D.PlaneSlice = 0;
+
   for (size_t i = 0; i < FRAME_COUNT; i++) {
     HRESULT hr = swapChain->GetBuffer(i, IID_PPV_ARGS(&buffers[i]));
     if (FAILED(hr))
       return hr;
+    device->CreateRenderTargetView(buffers[i].get(), &desc, rtvHandles[i]);
   }
   return 0;
 }
 
 HRESULT RHI::CreateRtvHeap(ID3D12Device10* device, IDXGISwapChain4* swapChain,
-    ComScope<ID3D12DescriptorHeap>& rtvHeap, List<ComScope<ID3D12Resource>>& renderTargets) {
-  // D3D12_DESCRIPTOR_HEAP_DESC rtvHeapDesc = {};
-  // rtvHeapDesc.NumDescriptors = 2;
-  // rtvHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_RTV;
-  //
-  // HRESULT hr = device->CreateDescriptorHeap(&rtvHeapDesc, IID_PPV_ARGS(&rtvHeap));
-  // if (FAILED(hr))
-  //   return hr;
-  //
-  // renderTargets.resize(2);
-  // UINT rtvIncrementSize =
-  //     device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
-  //
-  // D3D12_CPU_DESCRIPTOR_HANDLE rtvHandle(rtvHeap->GetCPUDescriptorHandleForHeapStart());
-  //
-  // for (UINT i = 0; i < 2; i++) {
-  //   hr = swapChain->GetBuffer(i, IID_PPV_ARGS(&renderTargets[i]));
-  //   if (FAILED(hr))
-  //     return hr;
-  //   device->CreateRenderTargetView(renderTargets[i].get(), nullptr, rtvHandle);
-  //   rtvHandle.ptr += rtvIncrementSize;
-  // }
-  // return hr;
+    ComScope<ID3D12DescriptorHeap>& rtvHeap,
+    Array<D3D12_CPU_DESCRIPTOR_HANDLE, FRAME_COUNT>& rtvHandles) {
+  D3D12_DESCRIPTOR_HEAP_DESC desc = {};
+  desc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_RTV;
+  desc.NumDescriptors = 2;
+  desc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
+  desc.NodeMask = 0;
+
+  HRESULT hr = device->CreateDescriptorHeap(&desc, IID_PPV_ARGS(&rtvHeap));
+  if (FAILED(hr))
+    return hr;
+
+  auto firstHandle = rtvHeap->GetCPUDescriptorHandleForHeapStart();
+  auto handleIncrement = device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
+  for (size_t i = 0; i < FRAME_COUNT; i++) {
+    rtvHandles[i] = firstHandle;
+    rtvHandles[i].ptr += handleIncrement * i;
+  }
+
   return 0;
 }
 

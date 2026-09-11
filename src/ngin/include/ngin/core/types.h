@@ -56,9 +56,11 @@ struct ComScope : NonCopyable {
   inline T** operator&() noexcept { return &ptr; }
   inline T* operator->() noexcept { return ptr; }
 
-  inline T* const get() { return ptr; }
+  inline T* const get() const noexcept { return ptr; }
 
   explicit operator bool() const noexcept { return ptr != nullptr; }
+
+  operator T*() const noexcept { return get(); }
 
   T** put() noexcept {
     reset();
@@ -92,5 +94,8 @@ using Ref = std::shared_ptr<T>;
 
 template <typename T>
 using List = std::vector<T>;
+
+template <typename T, std::size_t N>
+using Array = std::array<T, N>;
 
 }  // namespace Ngin

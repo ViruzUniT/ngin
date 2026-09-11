@@ -149,7 +149,16 @@ Error Update(Window& window) {
     TranslateMessage(&msg);
     DispatchMessage(&msg);
   }
-  window.rhi->Update();
+  Error err = window.rhi->BeginFrame();
+  if (err)
+    return err;
+  // window.rhi->DoDrawingAndShit
+  err = window.rhi->EndFrame();
+  if (err)
+    return err;
+  err = window.rhi->Update();
+  if (err)
+    return err;
   return Error{};
 }
 
