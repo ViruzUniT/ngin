@@ -64,9 +64,9 @@ bool DXDebugLayer::InitDevice(ID3D12Device* device) {
 #endif
 }
 
+#ifdef NGIN_DEBUG
 void CALLBACK DXDebugLayer::DebugMessageCallback(D3D12_MESSAGE_CATEGORY category,
     D3D12_MESSAGE_SEVERITY severity, D3D12_MESSAGE_ID id, LPCSTR description, void* context) {
-#ifdef NGIN_DEBUG
   (void)category;
   (void)id;
   (void)context;
@@ -98,8 +98,8 @@ void CALLBACK DXDebugLayer::DebugMessageCallback(D3D12_MESSAGE_CATEGORY category
   std::fprintf(stderr, "[D3D12 %s] %s\n", severityString, description ? description : "");
 
   std::fflush(stderr);
-#endif
 }
+#endif
 
 void DXDebugLayer::Report() {
 #ifdef NGIN_DEBUG

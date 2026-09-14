@@ -10,8 +10,8 @@ int main() {
     auto window = Ngin::Window::Window(1200, 720, "test", "test");
     Ngin::Error err = Ngin::Window::Create(window);
     if (err.code > Ngin::ErrorCode::None) {
-      Ngin::logFatal(std::format("Window could not be created {}, {}", static_cast<int>(err.code),
-          err.message));
+      Ngin::logFatal(std::format("Window could not be created {}\n\r {}",
+          static_cast<int>(err.code), err.message));
       return 1;
     }
 

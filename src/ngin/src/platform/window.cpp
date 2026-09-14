@@ -53,7 +53,7 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam) 
 namespace Ngin {
 namespace Window {
 Error Create(Window& window) {
-  WNDCLASSEXW wc;
+  WNDCLASSEXW wc{};
   HINSTANCE instance = GetModuleHandle(nullptr);
   std::wstring className(window.className.begin(), window.className.end());
   std::wstring windowName(window.name.begin(), window.name.end());
