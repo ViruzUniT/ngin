@@ -65,6 +65,16 @@ elseif($operation -eq "compdb") {
   $result = $LASTEXITCODE
   Remove-Item $log -Force -ErrorAction SilentlyContinue
   if($result -ne 0) { exit $result }
+
+  $database = Get-Content "compile_commands.json" -Raw | ConvertFrom-Json
+  foreach($entry in $database) {
+    for($index = 0; $index -lt ($entry.arguments.Count - 1); $index++) {
+      if(($entry.arguments[$index] -eq "-include") -and ($entry.arguments[$index + 1] -match "bin-int/.*/pch\.h$")) {
+        $entry.arguments[$index + 1] = "../src/ngin/include/ngin/pch.h"
+      }
+    }
+  }
+  $database | ConvertTo-Json -Depth 10 | Set-Content "compile_commands.json" -Encoding utf8
 }
 elseif($operation -eq "build") {
   if($args.Count -lt 2) {
