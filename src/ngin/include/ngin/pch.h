@@ -11,6 +11,9 @@
 #include <utility>
 
 #if defined(NGIN_PLATFORM_WINDOWS)
+#include <ngin/platform/windows.h>
+#include <windows.h>
+
 #ifndef WIN32_LEAN_AND_MEAN
 #define WIN32_LEAN_AND_MEAN
 #endif
@@ -18,7 +21,4 @@
 #ifndef NOMINMAX
 #define NOMINMAX
 #endif
-
-#include <ngin/platform/windows.h>
-#include <windows.h>
 #endif

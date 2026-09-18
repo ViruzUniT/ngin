@@ -131,6 +131,7 @@ elseif($operation -eq "build") {
   if ($LASTEXITCODE -ne 0) {
     exit $LASTEXITCODE
   }
+
 }
 elseif($operation -eq "run") {
   if($args.Count -lt 2) {
@@ -174,6 +175,7 @@ elseif($operation -eq "clean") {
   if(Test-Path "bin-int") {
     Remove-Item "bin-int" -Recurse -Force
   }
+  Remove-Item compile_commands.json -ErrorAction SilentlyContinue
 }
 else {
   Write-Host "Unknown operation: $operation" -ForegroundColor Red

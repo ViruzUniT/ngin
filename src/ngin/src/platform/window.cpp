@@ -29,7 +29,8 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam) 
       Ngin::logTrace("Window created :)");
       return 0;
     case WM_SIZE:
-      if (lParam && (HIWORD(lParam) != window->height || LOWORD(lParam) != window->width) &&
+      if (lParam &&
+          (HIWORD(lParam) != window->dimensions.y || LOWORD(lParam) != window->dimensions.x) &&
           window != nullptr) {
         Ngin::logTrace("Resizing window");
         Ngin::Error err = Resize(*window);
@@ -84,8 +85,8 @@ Error Create(Window& window) {
 
   logTrace("Creating windowex");
   window.hwnd = CreateWindowExW(WS_EX_OVERLAPPEDWINDOW | WS_EX_APPWINDOW, className.c_str(),
-      windowName.c_str(), WS_OVERLAPPEDWINDOW, CW_USEDEFAULT, CW_USEDEFAULT, window.width,
-      window.height, nullptr, nullptr, instance, nullptr);
+      windowName.c_str(), WS_OVERLAPPEDWINDOW, CW_USEDEFAULT, CW_USEDEFAULT, window.dimensions.x,
+      window.dimensions.y, nullptr, nullptr, instance, nullptr);
 
   if (window.hwnd == nullptr) {
     Ngin::logError(std::format("Creating Window failed: Couldnt CreateWindowEx Error code {}",
@@ -96,7 +97,7 @@ Error Create(Window& window) {
   }
 
   logTrace("Creating RHI");
-  HRESULT hr = RHI::Create(window.hwnd, window.width, window.height, window.rhi);
+  HRESULT hr = RHI::Create(window.hwnd, window.dimensions.x, window.dimensions.y, window.rhi);
 
   if (FAILED(hr)) {
     if (hr == -2147024894) {
@@ -162,19 +163,24 @@ Error Update(Window& window) {
   return Error{};
 }
 
-Error Resize(Window& window) {
-  RECT cr;
-  if (GetClientRect(window.hwnd, &cr)) {
-    window.rhi->ReleaseBuffers();
-    window.width = cr.right - cr.left;
-    window.height = cr.bottom - cr.top;
-
-    Error err = window.rhi->Resize(window.width, window.height);
-    if (err.code)
-      return err;
-    return window.rhi->GetBuffers();
+Error Resize(Window& window, bool autoResize, Vec2Rounded newDimensions) {
+  if (autoResize) {
+    RECT cr;
+    if (GetClientRect(window.hwnd, &cr)) {
+      window.dimensions.x = cr.right - cr.left;
+      window.dimensions.y = cr.bottom - cr.top;
+    } else {
+      return Error{PlatformError, "Couldnt get Client Rect for Resizing"};
+    }
+  } else {
+    window.dimensions = newDimensions;
   }
-  return Error{Unknown, "Couldnt get Client Rect for Resizing"};
+  window.rhi->ReleaseBuffers();
+
+  Error err = window.rhi->Resize(window.dimensions.x, window.dimensions.y);
+  if (err)
+    return err;
+  return window.rhi->GetBuffers();
 }
 
 Error SetFullscreen(Window& window, bool enable) {

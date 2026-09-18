@@ -149,7 +149,7 @@ Error RHI::BeginFrame() {
   barr.Transition.StateAfter = D3D12_RESOURCE_STATE_RENDER_TARGET;
 
   cmdList->ResourceBarrier(1, &barr);
-  cmdList->ClearRenderTargetView(rtvHandles[currentBuffer], (FLOAT[4]){.4f, .4f, .8f, 1.f}, 0,
+  cmdList->ClearRenderTargetView(rtvHandles[currentBuffer], (f32[4]){.4f, .4f, .8f, 1.f}, 0,
       nullptr);
   cmdList->OMSetRenderTargets(1, &rtvHandles[currentBuffer], false, nullptr);
 

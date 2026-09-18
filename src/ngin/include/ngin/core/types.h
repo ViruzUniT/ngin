@@ -1,10 +1,31 @@
 #pragma once
 
+#include <cmath>
 #include <cstddef>
 #include <memory>
 #include <vector>
 
 #include "ngin/core/utility.h"
+
+namespace Ngin {
+using f32 = float;
+using f64 = double;
+
+struct Vec2 {
+  f32 x;
+  f32 y;
+};
+struct Vec2Rounded {
+  int x;
+  int y;
+  Vec2Rounded() = default;
+  Vec2Rounded(const int x, const int y) : x(x), y(y) {}
+  Vec2Rounded(const f32 x, const f32 y) : x(roundf(x)), y(roundf(y)) {}
+  Vec2Rounded(const Vec2 other) {
+    x = roundf(other.x);
+    y = roundf(other.y);
+  }
+};
 
 struct ComReleaser {
   template <typename T>
@@ -14,13 +35,6 @@ struct ComReleaser {
     }
   }
 };
-
-namespace Ngin {
-using f32 = float;
-using f64 = double;
-
-// template <typename T>
-// using Scope = std::unique_ptr<T>;
 
 template <typename T>
 struct ComScope : NonCopyable {
