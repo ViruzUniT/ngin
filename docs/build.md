@@ -81,3 +81,14 @@ bin-int/
 ```
 
 It should not remove source code, dependencies, documentation, or user assets.
+
+## clangd compile database
+
+After generating GNU Make files, create a configuration-specific compilation database without rebuilding the project:
+
+```powershell
+./build.ps1 gen gmake
+./build.ps1 compdb DEBUG
+```
+
+The command writes `compile_commands.json` at the repository root. Use `STAGING` or `RELEASE` for those configuration defines. It requires the `compiledb` Python package (`pip install compiledb`).

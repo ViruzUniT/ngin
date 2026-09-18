@@ -4,7 +4,7 @@ $type = ""
 if($operation) { } 
 else {
   Write-Host "You need to pass an operation type:" -ForegroundColor Red
-  Write-Host "build.ps1 (gen|build|run|clean) [vs2022|vs2026|gmake|DEBUG|STAGING|RELEASE]" -ForegroundColor Cyan
+  Write-Host "build.ps1 (gen|compdb|build|run|clean) [vs2022|vs2026|gmake|DEBUG|STAGING|RELEASE]" -ForegroundColor Cyan
   exit 1
 }
 
@@ -24,6 +24,47 @@ if($operation -eq "gen") {
   if ($LASTEXITCODE -ne 0) {
     exit $LASTEXITCODE
   }
+}
+elseif($operation -eq "compdb") {
+  if(-not (Get-Command make -ErrorAction SilentlyContinue)) {
+    Write-Host "make not found on PATH`nInstall GNU Make or use the project's configured toolchain" -ForegroundColor Red
+    exit 1
+  }
+  if(-not (Get-Command compiledb -ErrorAction SilentlyContinue)) {
+    Write-Host "compiledb not found on PATH`nInstall it with: pip install compiledb" -ForegroundColor Red
+    exit 1
+  }
+
+  if($args.Count -lt 2) { $type = "DEBUG" } else { $type = $args[1].ToUpper() }
+  if(($type -ne "DEBUG") -and ($type -ne "STAGING") -and ($type -ne "RELEASE")) {
+    Write-Host "Invalid compile database configuration: $type" -ForegroundColor Red
+    Write-Host "Use DEBUG, STAGING or RELEASE" -ForegroundColor Cyan
+    exit 1
+  }
+
+  if(-not (Test-Path "build/Ngin.make") -or -not (Test-Path "build/Sandbox.make")) {
+    Write-Host "Generated GNU Make files not found. Run build.ps1 gen gmake first" -ForegroundColor Red
+    exit 1
+  }
+
+  $makeConfig = $type.ToLower()
+  $buildDir = (Resolve-Path "build").Path
+  $log = [IO.Path]::GetTempFileName()
+  Push-Location "build"
+  try {
+    & make -f Ngin.make config=$makeConfig -n -B > $log
+    if($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+    & make -f Sandbox.make config=$makeConfig -n -B >> $log
+    if($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+  }
+  finally {
+    Pop-Location
+  }
+
+  & compiledb -f -p $log -o compile_commands.json -d $buildDir
+  $result = $LASTEXITCODE
+  Remove-Item $log -Force -ErrorAction SilentlyContinue
+  if($result -ne 0) { exit $result }
 }
 elseif($operation -eq "build") {
   if($args.Count -lt 2) {
@@ -126,6 +167,6 @@ elseif($operation -eq "clean") {
 }
 else {
   Write-Host "Unknown operation: $operation" -ForegroundColor Red
-  Write-Host "build.ps1 (gen|build|run|clean) [vs2022|vs2026|gmake|DEBUG|STAGING|RELEASE]" -ForegroundColor Cyan
+  Write-Host "build.ps1 (gen|compdb|build|run|clean) [vs2022|vs2026|gmake|DEBUG|STAGING|RELEASE]" -ForegroundColor Cyan
   exit 1
 }
