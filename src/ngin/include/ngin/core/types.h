@@ -72,23 +72,23 @@ struct ComScope : NonCopyable {
 
   inline T* const get() const noexcept { return ptr; }
 
-  explicit operator bool() const noexcept { return ptr != nullptr; }
+  explicit inline operator bool() const noexcept { return ptr != nullptr; }
 
-  operator T*() const noexcept { return get(); }
+  inline operator T*() const noexcept { return get(); }
 
-  T** put() noexcept {
+  inline T** put() noexcept {
     reset();
     return &ptr;
   }
 
-  void reset() noexcept {
+  inline void reset() noexcept {
     if (ptr) {
       ptr->Release();
       ptr = nullptr;
     }
   }
 
-  T* detach() noexcept {
+  inline T* detach() noexcept {
     T* result = ptr;
     ptr = nullptr;
     return result;

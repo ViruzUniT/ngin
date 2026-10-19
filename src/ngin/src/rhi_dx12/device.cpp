@@ -24,6 +24,7 @@ HRESULT RHI::Create(HWND hwnd, uint16_t windowWidth, uint16_t windowHeight, Scop
   ComScope<ID3DBlob> errorBlob;
   ComScope<ID3D12PipelineState> pipelineState;
   List<ComScope<ID3D12Resource>> renderTargets = {};
+  ComScope<ID3D12Resource2> uploadBuffer, vertexBuffer;
 
   logDebug("Creating Device");
   HRESULT hr = D3D12CreateDevice(nullptr, D3D_FEATURE_LEVEL_12_1, IID_PPV_ARGS(&device));
@@ -75,6 +76,31 @@ HRESULT RHI::Create(HWND hwnd, uint16_t windowWidth, uint16_t windowHeight, Scop
   hr = CreatePipeline(device.get(), rootSignature.get(), pipelineState);
   if (FAILED(hr))
     return hr;
+
+  logDebug("Creating Upload and Vertex Buffers");
+  hr = CreateUploadAndVertexBuffer(device.get(), cmdAlloc.get(), cmdQueue.get(), cmdList.get(),
+      fence.get(), uploadBuffer, vertexBuffer);
+
+  // TODO remove that bitch while refing
+  logTrace("Waiting for buffers to finish their work");
+  if (fence->GetCompletedValue() < 1) {
+    HANDLE event = CreateEvent(nullptr, FALSE, FALSE, nullptr);
+    if (!event) {
+      logError(std::format("Creating the event failed: {}", GetLastError()));
+      return HRESULT_FROM_WIN32(GetLastError());
+    }
+    hr = fence->SetEventOnCompletion(1, event);
+
+    if (FAILED(hr)) {
+      CloseHandle(event);
+      return hr;
+    }
+
+    DWORD result = WaitForSingleObject(event, INFINITE);
+    CloseHandle(event);
+    if (result != WAIT_OBJECT_0)
+      return E_FAIL;
+  }
 
   logDebug("Creating RHI");
   if (rhi.get() != nullptr)
@@ -216,6 +242,73 @@ HRESULT RHI::CreateCommandList(ID3D12Device10* device,
   if (FAILED(hr))
     return hr;
   return cmdList->Close();
+}
+
+HRESULT RHI::CreateUploadAndVertexBuffer(ID3D12Device10* device, ID3D12CommandAllocator* cmdAlloc,
+    ID3D12CommandQueue* cmdQueue, ID3D12GraphicsCommandList7* cmdList, ID3D12Fence1* fence,
+    ComScope<ID3D12Resource2>& uploadBuffer, ComScope<ID3D12Resource2>& vertexBuffer) {
+  D3D12_HEAP_PROPERTIES hpDefault{
+      .Type = D3D12_HEAP_TYPE_DEFAULT,
+      .CPUPageProperty = D3D12_CPU_PAGE_PROPERTY_UNKNOWN,
+      .MemoryPoolPreference = D3D12_MEMORY_POOL_UNKNOWN,
+      .CreationNodeMask = 0,
+      .VisibleNodeMask = 0
+  };
+  D3D12_HEAP_PROPERTIES hpUpload{
+      .Type = D3D12_HEAP_TYPE_UPLOAD,
+      .CPUPageProperty = D3D12_CPU_PAGE_PROPERTY_UNKNOWN,
+      .MemoryPoolPreference = D3D12_MEMORY_POOL_UNKNOWN,
+      .CreationNodeMask = 0,
+      .VisibleNodeMask = 0
+  };
+
+  D3D12_RESOURCE_DESC rd{
+      .Dimension = D3D12_RESOURCE_DIMENSION_BUFFER,
+      .Alignment = D3D12_DEFAULT_RESOURCE_PLACEMENT_ALIGNMENT,
+      .Width = 1024,
+      .Height = 1,
+      .DepthOrArraySize = 1,
+      .MipLevels = 1,
+      .Format = DXGI_FORMAT_UNKNOWN,
+      .SampleDesc = {.Count = 1, .Quality = 0},
+      .Layout = D3D12_TEXTURE_LAYOUT_ROW_MAJOR,
+      .Flags = D3D12_RESOURCE_FLAG_NONE
+  };
+
+  const char* helloTest = "Fuck me";
+
+  HRESULT hr = device->CreateCommittedResource(&hpUpload, D3D12_HEAP_FLAG_NONE, &rd,
+      D3D12_RESOURCE_STATE_GENERIC_READ, nullptr, IID_PPV_ARGS(&uploadBuffer));
+  if (FAILED(hr))
+    return hr;
+  hr = device->CreateCommittedResource(&hpDefault, D3D12_HEAP_FLAG_NONE, &rd,
+      D3D12_RESOURCE_STATE_COPY_DEST, nullptr, IID_PPV_ARGS(&vertexBuffer));
+  if (FAILED(hr))
+    return hr;
+
+  void* uploadBufferAddr;
+  D3D12_RANGE readRange{0, 0};
+  hr = uploadBuffer->Map(0, &readRange, &uploadBufferAddr);
+  if (FAILED(hr)) {
+    logError("Mapping the upload buffer failed");
+    return hr;
+  }
+
+  D3D12_RANGE writtenRange{0, strlen(helloTest) + 1};
+  mempcpy(uploadBufferAddr, helloTest, strlen(helloTest) + 1);
+  uploadBuffer->Unmap(0, &writtenRange);
+
+  cmdList->CopyBufferRegion(vertexBuffer, 0, uploadBuffer, 0, strlen(helloTest) + 1);
+
+  logDebug(std::format("Vertex Buffer: {}\nUpload Buffer: {}",
+      static_cast<void*>(vertexBuffer.get()), static_cast<void*>(uploadBuffer.get())));
+
+  ID3D12CommandList* list[] = {cmdList};
+  cmdQueue->ExecuteCommandLists(1, list);
+
+  hr = cmdQueue->Signal(fence, 1);
+
+  return hr;
 }
 
 HRESULT RHI::CreateSwapChain(IDXGIFactory7* factory, ComScope<IDXGISwapChain4>& swapChain,

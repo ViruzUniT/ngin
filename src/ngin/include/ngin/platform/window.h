@@ -26,7 +26,8 @@ struct Window {
 Error Create(Window& window);
 Error SetShow(Window& window, CmdShow showType);
 Error Update(Window& window);
-Error Resize(Window& window, bool autoResize = true, Vec2Rounded newDimensions = Vec2Rounded());
+Error Resize(Window& window, bool autoResize = true,
+    std::optional<Vec2Rounded> newDimensions = {});
 Error SetFullscreen(Window& window, bool enable);
 Error Close(Window& window);
 }  // namespace Window

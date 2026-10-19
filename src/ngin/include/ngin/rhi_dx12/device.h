@@ -159,5 +159,9 @@ struct RHI : NonCopyable {
       ComScope<ID3D12PipelineState>& pipelineState);
   static HRESULT CreateCommandList(ID3D12Device10* device,
       ComScope<ID3D12GraphicsCommandList7>& cmdList, ID3D12CommandAllocator* cmdAlloc);
+  static HRESULT CreateUploadAndVertexBuffer(ID3D12Device10* device,
+      ID3D12CommandAllocator* cmdAlloc, ID3D12CommandQueue* cmdQueue,
+      ID3D12GraphicsCommandList7* cmdList, ID3D12Fence1* fence,
+      ComScope<ID3D12Resource2>& uploadBuffer, ComScope<ID3D12Resource2>& vertexBuffer);
 };
 }  // namespace Ngin

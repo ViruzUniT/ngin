@@ -163,7 +163,7 @@ Error Update(Window& window) {
   return Error{};
 }
 
-Error Resize(Window& window, bool autoResize, Vec2Rounded newDimensions) {
+Error Resize(Window& window, bool autoResize, std::optional<Vec2Rounded> newDimensions) {
   if (autoResize) {
     RECT cr;
     if (GetClientRect(window.hwnd, &cr)) {
@@ -173,18 +173,25 @@ Error Resize(Window& window, bool autoResize, Vec2Rounded newDimensions) {
       return Error{PlatformError, "Couldnt get Client Rect for Resizing"};
     }
   } else {
-    window.dimensions = newDimensions;
+    if (newDimensions)
+      window.dimensions = newDimensions.value();
+    else
+      return Error{PlatformError,
+          "No newDimensions were passed even though autoResize was false"};
   }
+
   window.rhi->ReleaseBuffers();
 
   Error err = window.rhi->Resize(window.dimensions.x, window.dimensions.y);
   if (err)
     return err;
+
   return window.rhi->GetBuffers();
 }
 
 Error SetFullscreen(Window& window, bool enable) {
   window.fullscreen = enable;
+
   DWORD style = WS_OVERLAPPEDWINDOW | WS_VISIBLE;
   DWORD exStyle = WS_EX_OVERLAPPEDWINDOW | WS_EX_APPWINDOW;
 

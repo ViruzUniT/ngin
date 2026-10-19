@@ -6,4 +6,6 @@ AllowAllArgumentsOnNextLine: false
 BasedOnStyle: Google
 AllowShortIfStatementsOnASingleLine: Never
 ColumnLimit: 98
+BreakAfterOpenBracketBracedList: true
+BreakBeforeCloseBracketBracedList: true
 ...
