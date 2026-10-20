@@ -1,0 +1,8 @@
+If:
+  PathMatch: .*\.hlsli?
+
+CompileFlags:
+  Add:
+    - -x
+    - hlsl
+    - --target=dxil-pc-shadermodel6.6-library

@@ -23,11 +23,13 @@ links({
 	"Ngin",
 })
 
-postbuildcommands({
-	"{COPY} ../src/ngin/shaders/*.hlsl %{cfg.targetdir}",
+filter("system:windows")
+prebuildcommands({
+	"{MKDIR} %{cfg.targetdir}",
+	'dxc -T vs_6_0 -E main -Fo "%{cfg.targetdir}/vertex.dxil" ../src/ngin/shaders/vertex.hlsl',
+	'dxc -T ps_6_0 -E main -Fo "%{cfg.targetdir}/pixel.dxil" ../src/ngin/shaders/pixel.hlsl',
 })
 
-filter("system:windows")
 links({
 	"user32",
 	"gdi32",

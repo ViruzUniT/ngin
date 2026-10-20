@@ -1,9 +1,3 @@
-float4 main(uint vertexId : SV_VertexID) : SV_Position {
-  float2 positions[3] = {
-      float2(0.0f, 0.5f),
-      float2(0.5f, -0.5f),
-      float2(-0.5f, -0.5f),
-  };
-
-  return float4(positions[vertexId], 0.0f, 1.0f);
+float4 main(float2 pos: Position) : SV_Position {
+  return float4(pos.xy, 0.0f, 1.0f);
 }

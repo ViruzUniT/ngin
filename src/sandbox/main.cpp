@@ -8,6 +8,7 @@ int main() {
   {
     auto window = Ngin::Window::Window(1200, 720, "test", "test");
     Ngin::Error err = Ngin::Window::Create(window);
+
     if (err.code > Ngin::ErrorCode::None) {
       Ngin::logFatal(std::format("Window could not be created {}\n\r{}",
           static_cast<int>(err.code), err.message));
@@ -20,6 +21,7 @@ int main() {
     Ngin::logTrace("Updating Sandbox");
     Ngin::Error state = Ngin::Window::Update(window);
     Ngin::logTrace("Entering main loop");
+
     while (state.code <= Ngin::ErrorCode::None) {
       state = Ngin::Window::Update(window);
     }

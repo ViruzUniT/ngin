@@ -4,9 +4,20 @@
 #include <ngin/core/DXDebugLayer.h>
 #include <ngin/core/types.h>
 #include <ngin/pch.h>
+#include <ngin/rhi/shader.h>
 
 #include <utility>
+
 namespace Ngin {
+
+struct Vertex {
+  f32 x, y;
+};
+constexpr Vertex verticies[] = {
+    // T1
+    {-1.f, -1.f}, {0.f, 1.f}, {1.f, -1.f}
+};
+
 struct RHI : NonCopyable {
  public:
   RHI() = delete;
@@ -57,7 +68,9 @@ struct RHI : NonCopyable {
       ComScope<ID3D12CommandAllocator>& cmdAlloc, ComScope<ID3D12GraphicsCommandList7>& cmdList,
       ComScope<ID3D12DescriptorHeap>& rtvHeap, Array<D3D12_CPU_DESCRIPTOR_HANDLE, N> rtvHandles,
       ComScope<IDXGIFactory7>& factory, ComScope<ID3D12RootSignature>& rootSignature,
-      ComScope<ID3D12PipelineState>& pipelineState, List<ComScope<ID3D12Resource>>& renderTargets)
+      ComScope<ID3D12PipelineState>& pipelineState, List<ComScope<ID3D12Resource>>& renderTargets,
+      ComScope<ID3D12Resource2>& uploadBuffer, ComScope<ID3D12Resource2>& vertexBuffer,
+      D3D12_VERTEX_BUFFER_VIEW& vbv)
       : fenceEvent(fenceEvent) {
     this->device = std::move(device);
     DXDebugLayer::Get().InitDevice(this->device);
@@ -77,6 +90,9 @@ struct RHI : NonCopyable {
     this->rootSignature = std::move(rootSignature);
     this->renderTargets = std::move(renderTargets);
     this->pipelineState = std::move(pipelineState);
+    this->uploadBuffer = std::move(uploadBuffer);
+    this->vertexBuffer = std::move(vertexBuffer);
+    this->vbv = vbv;
   }
 
  public:
@@ -93,12 +109,20 @@ struct RHI : NonCopyable {
   Error BeginFrame();
   Error EndFrame();
   Error Resize(uint16_t width, uint16_t height);
+  // TODO do not void pls
+  inline void DoIA() {
+    cmdList->IASetVertexBuffers(0, 1, &vbv);
+    cmdList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+  }
+  inline void Draw() { cmdList->DrawInstanced(_countof(verticies), 1, 0, 0); }
+
   inline Error GetBuffers() {
     HRESULT hr = GetBuffers(device, swapChain, buffers, rtvHeap, rtvHandles);
     if (FAILED(hr))
       return Error{Unknown, std::format("Getting the buffers failed: {}", hr)};
     return Error{};
   }
+
   inline void ReleaseBuffers() {
     for (size_t i = 0; i < FRAME_COUNT; i++) {
       buffers[i].reset();
@@ -132,6 +156,8 @@ struct RHI : NonCopyable {
   ComScope<ID3D12RootSignature> rootSignature;
   ComScope<ID3D12PipelineState> pipelineState;
   List<ComScope<ID3D12Resource>> renderTargets;
+  ComScope<ID3D12Resource2> uploadBuffer, vertexBuffer;
+  D3D12_VERTEX_BUFFER_VIEW vbv;
 
   static const uint32_t SWAPCHAIN_FLAGS =
       DXGI_SWAP_CHAIN_FLAG_ALLOW_MODE_SWITCH | DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING;
@@ -155,13 +181,12 @@ struct RHI : NonCopyable {
   static HRESULT CreateSignature(ID3D12Device10* device,
       ComScope<ID3D12RootSignature>& rootSignature, ComScope<ID3DBlob>& signatureBlob,
       ComScope<ID3DBlob>& errorBlob);
-  static HRESULT CreatePipeline(ID3D12Device10* device, ID3D12RootSignature* rootSignature,
-      ComScope<ID3D12PipelineState>& pipelineState);
   static HRESULT CreateCommandList(ID3D12Device10* device,
       ComScope<ID3D12GraphicsCommandList7>& cmdList, ID3D12CommandAllocator* cmdAlloc);
   static HRESULT CreateUploadAndVertexBuffer(ID3D12Device10* device,
       ID3D12CommandAllocator* cmdAlloc, ID3D12CommandQueue* cmdQueue,
       ID3D12GraphicsCommandList7* cmdList, ID3D12Fence1* fence,
-      ComScope<ID3D12Resource2>& uploadBuffer, ComScope<ID3D12Resource2>& vertexBuffer);
+      ComScope<ID3D12Resource2>& uploadBuffer, ComScope<ID3D12Resource2>& vertexBuffer,
+      D3D12_VERTEX_BUFFER_VIEW& vbv);
 };
 }  // namespace Ngin

@@ -58,4 +58,4 @@ Do not commit generated directories, binaries, logs, or local tool artifacts. Ke
 
 ## Update
 
-Update this agents.md file everytime you notice the project progressing
+The DX12 shader pipeline now compiles the sandbox vertex and pixel HLSL to DXIL with DXC during Premake builds, then loads those compiled files when creating the graphics pipeline. DXC must be available on `PATH`. Keep this status current as the project progresses.

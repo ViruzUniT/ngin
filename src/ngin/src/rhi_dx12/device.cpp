@@ -1,9 +1,6 @@
 #include <d3dcompiler.h>
 #include <ngin/rhi_dx12/device.h>
 
-void setBlendState(D3D12_BLEND_DESC& blendDesc);
-void setRasterizerState(D3D12_RASTERIZER_DESC& rasterizerDesc);
-void setDepthStencilState(D3D12_DEPTH_STENCIL_DESC& depthStencilDesc);
 namespace Ngin {
 HRESULT RHI::Create(HWND hwnd, uint16_t windowWidth, uint16_t windowHeight, Scope<RHI>& rhi) {
   // TODOO: check if it makes problems or if theres a better way for this shit
@@ -25,6 +22,7 @@ HRESULT RHI::Create(HWND hwnd, uint16_t windowWidth, uint16_t windowHeight, Scop
   ComScope<ID3D12PipelineState> pipelineState;
   List<ComScope<ID3D12Resource>> renderTargets = {};
   ComScope<ID3D12Resource2> uploadBuffer, vertexBuffer;
+  D3D12_VERTEX_BUFFER_VIEW vbv = {};
 
   logDebug("Creating Device");
   HRESULT hr = D3D12CreateDevice(nullptr, D3D_FEATURE_LEVEL_12_1, IID_PPV_ARGS(&device));
@@ -72,14 +70,9 @@ HRESULT RHI::Create(HWND hwnd, uint16_t windowWidth, uint16_t windowHeight, Scop
   if (FAILED(hr))
     return hr;
 
-  logDebug("Creating Pipeline");
-  hr = CreatePipeline(device.get(), rootSignature.get(), pipelineState);
-  if (FAILED(hr))
-    return hr;
-
   logDebug("Creating Upload and Vertex Buffers");
   hr = CreateUploadAndVertexBuffer(device.get(), cmdAlloc.get(), cmdQueue.get(), cmdList.get(),
-      fence.get(), uploadBuffer, vertexBuffer);
+      fence.get(), uploadBuffer, vertexBuffer, vbv);
 
   // TODO remove that bitch while refing
   logTrace("Waiting for buffers to finish their work");
@@ -106,7 +99,8 @@ HRESULT RHI::Create(HWND hwnd, uint16_t windowWidth, uint16_t windowHeight, Scop
   if (rhi.get() != nullptr)
     rhi.reset();
   rhi.reset(new RHI(device, cmdQueue, fence, fenceEvent, swapChain, cmdAlloc, cmdList, rtvHeap,
-      rtvHandles, factory, rootSignature, pipelineState, renderTargets));
+      rtvHandles, factory, rootSignature, pipelineState, renderTargets, uploadBuffer,
+      vertexBuffer, vbv));
 
   return hr;
 }
@@ -246,7 +240,8 @@ HRESULT RHI::CreateCommandList(ID3D12Device10* device,
 
 HRESULT RHI::CreateUploadAndVertexBuffer(ID3D12Device10* device, ID3D12CommandAllocator* cmdAlloc,
     ID3D12CommandQueue* cmdQueue, ID3D12GraphicsCommandList7* cmdList, ID3D12Fence1* fence,
-    ComScope<ID3D12Resource2>& uploadBuffer, ComScope<ID3D12Resource2>& vertexBuffer) {
+    ComScope<ID3D12Resource2>& uploadBuffer, ComScope<ID3D12Resource2>& vertexBuffer,
+    D3D12_VERTEX_BUFFER_VIEW& vbv) {
   D3D12_HEAP_PROPERTIES hpDefault{
       .Type = D3D12_HEAP_TYPE_DEFAULT,
       .CPUPageProperty = D3D12_CPU_PAGE_PROPERTY_UNKNOWN,
@@ -275,7 +270,22 @@ HRESULT RHI::CreateUploadAndVertexBuffer(ID3D12Device10* device, ID3D12CommandAl
       .Flags = D3D12_RESOURCE_FLAG_NONE
   };
 
-  const char* helloTest = "Fuck me";
+  D3D12_INPUT_ELEMENT_DESC vertexLayout[] = {
+      {"Position", 0, DXGI_FORMAT_R32G32_FLOAT, 0, 0, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA,
+          0},
+  };
+
+  Shader vertexShader("vertexShader.dxil");
+  Shader pixelShader("pixelShader.dxil");
+
+  D3D12_GRAPHICS_PIPELINE_STATE_DESC gfxPsod{};
+  gfxPsod.IBStripCutValue = D3D12_INDEX_BUFFER_STRIP_CUT_VALUE_DISABLED;
+  gfxPsod.InputLayout.NumElements = _countof(vertexLayout);
+  gfxPsod.InputLayout.pInputElementDescs = vertexLayout;
+  gfxPsod.VS.pShaderBytecode = vertexShader.GetBuffer();
+  gfxPsod.VS.BytecodeLength = vertexShader.GetSize();
+  gfxPsod.PS.pShaderBytecode = pixelShader.GetBuffer();
+  gfxPsod.PS.BytecodeLength = pixelShader.GetSize();
 
   HRESULT hr = device->CreateCommittedResource(&hpUpload, D3D12_HEAP_FLAG_NONE, &rd,
       D3D12_RESOURCE_STATE_GENERIC_READ, nullptr, IID_PPV_ARGS(&uploadBuffer));
@@ -294,11 +304,11 @@ HRESULT RHI::CreateUploadAndVertexBuffer(ID3D12Device10* device, ID3D12CommandAl
     return hr;
   }
 
-  D3D12_RANGE writtenRange{0, strlen(helloTest) + 1};
-  mempcpy(uploadBufferAddr, helloTest, strlen(helloTest) + 1);
+  D3D12_RANGE writtenRange{0, sizeof(verticies)};
+  mempcpy(uploadBufferAddr, verticies, sizeof(verticies));
   uploadBuffer->Unmap(0, &writtenRange);
 
-  cmdList->CopyBufferRegion(vertexBuffer, 0, uploadBuffer, 0, strlen(helloTest) + 1);
+  cmdList->CopyBufferRegion(vertexBuffer, 0, uploadBuffer, 0, sizeof(verticies));
 
   logDebug(std::format("Vertex Buffer: {}\nUpload Buffer: {}",
       static_cast<void*>(vertexBuffer.get()), static_cast<void*>(uploadBuffer.get())));
@@ -307,6 +317,10 @@ HRESULT RHI::CreateUploadAndVertexBuffer(ID3D12Device10* device, ID3D12CommandAl
   cmdQueue->ExecuteCommandLists(1, list);
 
   hr = cmdQueue->Signal(fence, 1);
+
+  vbv.BufferLocation = vertexBuffer->GetGPUVirtualAddress();
+  vbv.SizeInBytes = sizeof(Vertex) * _countof(verticies);
+  vbv.StrideInBytes = sizeof(Vertex);
 
   return hr;
 }
@@ -410,104 +424,4 @@ HRESULT RHI::CreateSignature(ID3D12Device10* device, ComScope<ID3D12RootSignatur
     return hr;
   return hr;
 }
-
-HRESULT RHI::CreatePipeline(ID3D12Device10* device, ID3D12RootSignature* rootSignature,
-    ComScope<ID3D12PipelineState>& pipelineState) {
-  ComScope<ID3DBlob> vertexShader;
-  ComScope<ID3DBlob> pixelShader;
-
-  auto shaderPath = Ngin::getExecutableDirectory();
-  HRESULT hr = D3DCompileFromFile((shaderPath / L"vertex.hlsl").c_str(), nullptr, nullptr, "main",
-      "vs_5_0", 0, 0, &vertexShader, nullptr);
-  if (FAILED(hr))
-    return hr;
-  hr = D3DCompileFromFile((shaderPath / L"pixel.hlsl").c_str(), nullptr, nullptr, "main",
-      "ps_5_0", 0, 0, &pixelShader, nullptr);
-  if (FAILED(hr))
-    return hr;
-
-  // Pipeline state
-  D3D12_GRAPHICS_PIPELINE_STATE_DESC psoDesc = {};
-  psoDesc.pRootSignature = rootSignature;
-  psoDesc.VS.pShaderBytecode = vertexShader->GetBufferPointer();
-  psoDesc.VS.BytecodeLength = vertexShader->GetBufferSize();
-  psoDesc.PS.pShaderBytecode = pixelShader->GetBufferPointer();
-  psoDesc.PS.BytecodeLength = pixelShader->GetBufferSize();
-  setBlendState(psoDesc.BlendState);
-  psoDesc.SampleMask = UINT_MAX;
-  setRasterizerState(psoDesc.RasterizerState);
-  setDepthStencilState(psoDesc.DepthStencilState);
-  psoDesc.InputLayout.pInputElementDescs = nullptr;
-  psoDesc.InputLayout.NumElements = 0;
-  psoDesc.IBStripCutValue = D3D12_INDEX_BUFFER_STRIP_CUT_VALUE_DISABLED;
-  psoDesc.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
-  psoDesc.NumRenderTargets = 1;
-  psoDesc.RTVFormats[0] = DXGI_FORMAT_R8G8B8A8_UNORM;
-  psoDesc.SampleDesc.Count = 1;
-  psoDesc.SampleDesc.Quality = 0;
-
-  hr = device->CreateGraphicsPipelineState(&psoDesc, IID_PPV_ARGS(&pipelineState));
-
-  return hr;
-}
 };  // namespace Ngin
-
-void setBlendState(D3D12_BLEND_DESC& blendDesc) {
-  blendDesc = {};
-
-  blendDesc.AlphaToCoverageEnable = FALSE;
-  blendDesc.IndependentBlendEnable = FALSE;
-
-  D3D12_RENDER_TARGET_BLEND_DESC defaultRenderTargetBlendDesc = {};
-  defaultRenderTargetBlendDesc.BlendEnable = FALSE;
-  defaultRenderTargetBlendDesc.LogicOpEnable = FALSE;
-  defaultRenderTargetBlendDesc.SrcBlend = D3D12_BLEND_ONE;
-  defaultRenderTargetBlendDesc.DestBlend = D3D12_BLEND_ZERO;
-  defaultRenderTargetBlendDesc.BlendOp = D3D12_BLEND_OP_ADD;
-  defaultRenderTargetBlendDesc.SrcBlendAlpha = D3D12_BLEND_ONE;
-  defaultRenderTargetBlendDesc.DestBlendAlpha = D3D12_BLEND_ZERO;
-  defaultRenderTargetBlendDesc.BlendOpAlpha = D3D12_BLEND_OP_ADD;
-  defaultRenderTargetBlendDesc.LogicOp = D3D12_LOGIC_OP_NOOP;
-  defaultRenderTargetBlendDesc.RenderTargetWriteMask = D3D12_COLOR_WRITE_ENABLE_ALL;
-
-  for (UINT i = 0; i < D3D12_SIMULTANEOUS_RENDER_TARGET_COUNT; i++) {
-    blendDesc.RenderTarget[i] = defaultRenderTargetBlendDesc;
-  }
-}
-
-void setRasterizerState(D3D12_RASTERIZER_DESC& rasterizerDesc) {
-  rasterizerDesc = {};
-
-  rasterizerDesc.FillMode = D3D12_FILL_MODE_SOLID;
-  rasterizerDesc.CullMode = D3D12_CULL_MODE_BACK;
-  rasterizerDesc.FrontCounterClockwise = FALSE;
-  rasterizerDesc.DepthBias = D3D12_DEFAULT_DEPTH_BIAS;
-  rasterizerDesc.DepthBiasClamp = D3D12_DEFAULT_DEPTH_BIAS_CLAMP;
-  rasterizerDesc.SlopeScaledDepthBias = D3D12_DEFAULT_SLOPE_SCALED_DEPTH_BIAS;
-  rasterizerDesc.DepthClipEnable = TRUE;
-  rasterizerDesc.MultisampleEnable = FALSE;
-  rasterizerDesc.AntialiasedLineEnable = FALSE;
-  rasterizerDesc.ForcedSampleCount = 0;
-  rasterizerDesc.ConservativeRaster = D3D12_CONSERVATIVE_RASTERIZATION_MODE_OFF;
-}
-void setDepthStencilState(D3D12_DEPTH_STENCIL_DESC& depthStencilDesc) {
-  depthStencilDesc = {};
-
-  depthStencilDesc.DepthEnable = FALSE;
-  depthStencilDesc.DepthWriteMask = D3D12_DEPTH_WRITE_MASK_ALL;
-  depthStencilDesc.DepthFunc = D3D12_COMPARISON_FUNC_GREATER;
-
-  depthStencilDesc.StencilEnable = FALSE;
-  depthStencilDesc.StencilReadMask = D3D12_DEFAULT_STENCIL_READ_MASK;
-  depthStencilDesc.StencilWriteMask = D3D12_DEFAULT_STENCIL_WRITE_MASK;
-
-  depthStencilDesc.FrontFace.StencilFailOp = D3D12_STENCIL_OP_KEEP;
-  depthStencilDesc.FrontFace.StencilDepthFailOp = D3D12_STENCIL_OP_KEEP;
-  depthStencilDesc.FrontFace.StencilPassOp = D3D12_STENCIL_OP_KEEP;
-  depthStencilDesc.FrontFace.StencilFunc = D3D12_COMPARISON_FUNC_ALWAYS;
-
-  depthStencilDesc.BackFace.StencilFailOp = D3D12_STENCIL_OP_KEEP;
-  depthStencilDesc.BackFace.StencilDepthFailOp = D3D12_STENCIL_OP_KEEP;
-  depthStencilDesc.BackFace.StencilPassOp = D3D12_STENCIL_OP_KEEP;
-  depthStencilDesc.BackFace.StencilFunc = D3D12_COMPARISON_FUNC_ALWAYS;
-}

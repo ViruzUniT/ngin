@@ -78,9 +78,10 @@ Error Create(Window& window) {
   if (!window.w_class) {
     Ngin::logError(std::format("Creating window failed. Couldnt RegisterClass Error code {}",
         GetLastError()));
-    return Error{PlatformError,
-        std::format("Creating window failed. Couldnt RegisterClass Error code {}",
-            GetLastError())};
+    return Error{
+        PlatformError,
+        std::format("Creating window failed. Couldnt RegisterClass Error code {}", GetLastError())
+    };
   }
 
   logTrace("Creating windowex");
@@ -91,9 +92,10 @@ Error Create(Window& window) {
   if (window.hwnd == nullptr) {
     Ngin::logError(std::format("Creating Window failed: Couldnt CreateWindowEx Error code {}",
         GetLastError()));
-    return Error{PlatformError,
-        std::format("Creating Window failed: Couldnt CreateWindowEx Error code {}",
-            GetLastError())};
+    return Error{
+        PlatformError, std::format("Creating Window failed: Couldnt CreateWindowEx Error code {}",
+                           GetLastError())
+    };
   }
 
   logTrace("Creating RHI");
@@ -151,9 +153,12 @@ Error Update(Window& window) {
     DispatchMessage(&msg);
   }
   Error err = window.rhi->BeginFrame();
+
+  window.rhi->DoIA();
+
   if (err)
     return err;
-  // window.rhi->DoDrawingAndShit
+  window.rhi->Draw();
   err = window.rhi->EndFrame();
   if (err)
     return err;
@@ -176,8 +181,9 @@ Error Resize(Window& window, bool autoResize, std::optional<Vec2Rounded> newDime
     if (newDimensions)
       window.dimensions = newDimensions.value();
     else
-      return Error{PlatformError,
-          "No newDimensions were passed even though autoResize was false"};
+      return Error{
+          PlatformError, "No newDimensions were passed even though autoResize was false"
+      };
   }
 
   window.rhi->ReleaseBuffers();
