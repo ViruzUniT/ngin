@@ -471,33 +471,4 @@ HRESULT RHI::CreateRtvHeap(ID3D12Device10* device, IDXGISwapChain4* swapChain,
 
   return 0;
 }
-
-// HRESULT RHI::CreateSignature(ID3D12Device10* device, ComScope<ID3D12RootSignature>&
-// rootSignature,
-//     ComScope<ID3DBlob>& signatureBlob, ComScope<ID3DBlob>& errorBlob) {
-//   D3D12_ROOT_PARAMETER rootParameters[1] = {};
-//   rootParameters[0].ParameterType = D3D12_ROOT_PARAMETER_TYPE_32BIT_CONSTANTS;
-//   rootParameters[0].Constants.Num32BitValues = 1;
-//   rootParameters[0].Constants.ShaderRegister = 0;
-//   rootParameters[0].Constants.RegisterSpace = 0;
-//   rootParameters[0].ShaderVisibility = D3D12_SHADER_VISIBILITY_VERTEX;
-//
-//   D3D12_ROOT_SIGNATURE_DESC rootSignatureDesc = {};
-//   rootSignatureDesc.NumParameters = _countof(rootParameters);
-//   rootSignatureDesc.pParameters = rootParameters;
-//   rootSignatureDesc.NumStaticSamplers = 0;
-//   rootSignatureDesc.pStaticSamplers = nullptr;
-//   rootSignatureDesc.Flags = D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT;
-//
-//   HRESULT hr = D3D12SerializeRootSignature(&rootSignatureDesc, D3D_ROOT_SIGNATURE_VERSION_1,
-//       &signatureBlob, &errorBlob);
-//   if (FAILED(hr))
-//     return hr;
-//
-//   hr = device->CreateRootSignature(0, signatureBlob->GetBufferPointer(),
-//       signatureBlob->GetBufferSize(), IID_PPV_ARGS(&rootSignature));
-//   if (FAILED(hr))
-//     return hr;
-//   return hr;
-// }
 };  // namespace Ngin
