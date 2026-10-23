@@ -153,13 +153,15 @@ Error Update(Window& window) {
     DispatchMessage(&msg);
   }
   Error err = window.rhi->BeginFrame();
+  if (err)
+    return err;
 
   window.rhi->DoPSO();
   window.rhi->DoIA();
+  window.rhi->DoRS(window.dimensions);
 
-  if (err)
-    return err;
   window.rhi->Draw();
+
   err = window.rhi->EndFrame();
   if (err)
     return err;

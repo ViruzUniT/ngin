@@ -118,6 +118,21 @@ struct RHI : NonCopyable {
     cmdList->IASetVertexBuffers(0, 1, &vbv);
     cmdList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
   }
+  inline void DoRS(Vec2Rounded windowDimensions) {
+    D3D12_VIEWPORT vp;
+    vp.TopLeftX = vp.TopLeftY = 0;
+    vp.Width = windowDimensions.x;
+    vp.Height = windowDimensions.y;
+    vp.MinDepth = 1.f;
+    vp.MaxDepth = 0.f;
+    cmdList->RSSetViewports(1, &vp);
+
+    RECT scRect;
+    scRect.left = scRect.top = 0;
+    scRect.right = windowDimensions.x;
+    scRect.bottom = windowDimensions.y;
+    cmdList->RSSetScissorRects(1, &scRect);
+  }
   inline void Draw() { cmdList->DrawInstanced(_countof(verticies), 1, 0, 0); }
 
   inline Error GetBuffers() {
