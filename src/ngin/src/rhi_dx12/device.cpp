@@ -22,48 +22,48 @@ HRESULT RHI::Create(HWND hwnd, uint16_t windowWidth, uint16_t windowHeight, Scop
   ComScope<ID3D12Resource2> uploadBuffer, vertexBuffer;
   D3D12_VERTEX_BUFFER_VIEW vbv = {};
 
-  logDebug("Creating Device");
+  logTrace("Creating Device");
   HRESULT hr = D3D12CreateDevice(nullptr, D3D_FEATURE_LEVEL_12_1, IID_PPV_ARGS(&device));
   if (FAILED(hr))
     return hr;
 
-  logDebug("Creating Cmd Queue");
+  logTrace("Creating Cmd Queue");
   hr = CreateCommandQueue(device.get(), cmdQueue);
   if (FAILED(hr))
     return hr;
 
-  logDebug("Creating Fence");
+  logTrace("Creating Fence");
   hr = CreateFence(device.get(), FENCE_VALUE, fence, fenceEvent);
   if (FAILED(hr))
     return hr;
 
-  logDebug("Creating Cmd Alloc");
+  logTrace("Creating Cmd Alloc");
   hr = CreateCommandAllocator(device.get(), cmdAlloc);
   if (FAILED(hr))
     return hr;
 
-  logDebug("Creating Cmd List");
+  logTrace("Creating Cmd List");
   hr = CreateCommandList(device.get(), cmdList, cmdAlloc.get());
   if (FAILED(hr))
     return hr;
 
-  logDebug("Creating Factory");
+  logTrace("Creating Factory");
   hr = CreateDXGIFactory2(0, IID_PPV_ARGS(&factory));
   if (FAILED(hr))
     return hr;
 
-  logDebug("Creating Swap chain");
+  logTrace("Creating Swap chain");
   hr = CreateSwapChain(factory.get(), swapChain, cmdQueue.get(), windowWidth, windowHeight, hwnd,
     true);
   if (FAILED(hr))
     return hr;
 
-  logDebug("Creating Rtv Heap");
+  logTrace("Creating Rtv Heap");
   hr = CreateRtvHeap(device, swapChain, rtvHeap, rtvHandles);
   if (FAILED(hr))
     return hr;
 
-  logDebug("Creating Upload and Vertex Buffers");
+  logTrace("Creating Upload and Vertex Buffers");
   hr = CreateUploadAndVertexBuffer(device.get(), cmdAlloc.get(), cmdQueue.get(), cmdList.get(),
     fence.get(), uploadBuffer, vertexBuffer, rootSignature, pipelineState, vbv);
   if (FAILED(hr))
@@ -91,8 +91,6 @@ HRESULT RHI::Create(HWND hwnd, uint16_t windowWidth, uint16_t windowHeight, Scop
   }
 
   logDebug("Creating RHI");
-  if (rhi.get() != nullptr)
-    rhi.reset();
   rhi.reset(new RHI(device, cmdQueue, fence, fenceEvent, swapChain, cmdAlloc, cmdList, rtvHeap,
     rtvHandles, factory, rootSignature, pipelineState, renderTargets, uploadBuffer, vertexBuffer,
     vbv));
