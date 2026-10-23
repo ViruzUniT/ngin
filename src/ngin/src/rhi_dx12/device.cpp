@@ -17,8 +17,6 @@ HRESULT RHI::Create(HWND hwnd, uint16_t windowWidth, uint16_t windowHeight, Scop
   Array<D3D12_CPU_DESCRIPTOR_HANDLE, FRAME_COUNT> rtvHandles;
   ComScope<IDXGIFactory7> factory;
   ComScope<ID3D12RootSignature> rootSignature;
-  ComScope<ID3DBlob> signatureBlob;
-  ComScope<ID3DBlob> errorBlob;
   ComScope<ID3D12PipelineState> pipelineState;
   List<ComScope<ID3D12Resource>> renderTargets = {};
   ComScope<ID3D12Resource2> uploadBuffer, vertexBuffer;
@@ -56,7 +54,7 @@ HRESULT RHI::Create(HWND hwnd, uint16_t windowWidth, uint16_t windowHeight, Scop
 
   logDebug("Creating Swap chain");
   hr = CreateSwapChain(factory.get(), swapChain, cmdQueue.get(), windowWidth, windowHeight, hwnd,
-      true);
+    true);
   if (FAILED(hr))
     return hr;
 
@@ -65,14 +63,11 @@ HRESULT RHI::Create(HWND hwnd, uint16_t windowWidth, uint16_t windowHeight, Scop
   if (FAILED(hr))
     return hr;
 
-  logDebug("Creating Sig");
-  hr = CreateSignature(device.get(), rootSignature, signatureBlob, errorBlob);
-  if (FAILED(hr))
-    return hr;
-
   logDebug("Creating Upload and Vertex Buffers");
   hr = CreateUploadAndVertexBuffer(device.get(), cmdAlloc.get(), cmdQueue.get(), cmdList.get(),
-      fence.get(), uploadBuffer, vertexBuffer, vbv);
+    fence.get(), uploadBuffer, vertexBuffer, rootSignature, pipelineState, vbv);
+  if (FAILED(hr))
+    return hr;
 
   // TODO remove that bitch while refing
   logTrace("Waiting for buffers to finish their work");
@@ -99,8 +94,8 @@ HRESULT RHI::Create(HWND hwnd, uint16_t windowWidth, uint16_t windowHeight, Scop
   if (rhi.get() != nullptr)
     rhi.reset();
   rhi.reset(new RHI(device, cmdQueue, fence, fenceEvent, swapChain, cmdAlloc, cmdList, rtvHeap,
-      rtvHandles, factory, rootSignature, pipelineState, renderTargets, uploadBuffer,
-      vertexBuffer, vbv));
+    rtvHandles, factory, rootSignature, pipelineState, renderTargets, uploadBuffer, vertexBuffer,
+    vbv));
 
   return hr;
 }
@@ -170,7 +165,7 @@ Error RHI::BeginFrame() {
 
   cmdList->ResourceBarrier(1, &barr);
   cmdList->ClearRenderTargetView(rtvHandles[currentBuffer], (f32[4]){.4f, .4f, .8f, 1.f}, 0,
-      nullptr);
+    nullptr);
   cmdList->OMSetRenderTargets(1, &rtvHandles[currentBuffer], false, nullptr);
 
   return Error{};
@@ -196,7 +191,7 @@ Error RHI::EndFrame() {
 Error RHI::Resize(uint16_t width, uint16_t height) {
   Flush(FRAME_COUNT);
   HRESULT hr =
-      swapChain->ResizeBuffers(FRAME_COUNT, width, height, DXGI_FORMAT_UNKNOWN, SWAPCHAIN_FLAGS);
+    swapChain->ResizeBuffers(FRAME_COUNT, width, height, DXGI_FORMAT_UNKNOWN, SWAPCHAIN_FLAGS);
   if (FAILED(hr)) {
     return Error{Unknown, std::format("SwapChain could not be resized: {}", hr)};
   }
@@ -215,7 +210,7 @@ HRESULT RHI::CreateCommandQueue(ID3D12Device10* device, ComScope<ID3D12CommandQu
 }
 
 HRESULT RHI::CreateFence(ID3D12Device10* device, const uint64_t fenceValue,
-    ComScope<ID3D12Fence1>& fence, HANDLE& fenceEvent) {
+  ComScope<ID3D12Fence1>& fence, HANDLE& fenceEvent) {
   HRESULT hr = device->CreateFence(fenceValue, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(&fence));
   if (FAILED(hr))
     return hr;
@@ -225,60 +220,68 @@ HRESULT RHI::CreateFence(ID3D12Device10* device, const uint64_t fenceValue,
 }
 
 HRESULT RHI::CreateCommandAllocator(ID3D12Device10* device,
-    ComScope<ID3D12CommandAllocator>& cmdAlloc) {
+  ComScope<ID3D12CommandAllocator>& cmdAlloc) {
   return device->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_DIRECT, IID_PPV_ARGS(&cmdAlloc));
 }
 
 HRESULT RHI::CreateCommandList(ID3D12Device10* device,
-    ComScope<ID3D12GraphicsCommandList7>& cmdList, ID3D12CommandAllocator* cmdAlloc) {
+  ComScope<ID3D12GraphicsCommandList7>& cmdList, ID3D12CommandAllocator* cmdAlloc) {
   HRESULT hr = device->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_DIRECT, cmdAlloc, nullptr,
-      IID_PPV_ARGS(&cmdList));
+    IID_PPV_ARGS(&cmdList));
   if (FAILED(hr))
     return hr;
   return cmdList->Close();
 }
 
 HRESULT RHI::CreateUploadAndVertexBuffer(ID3D12Device10* device, ID3D12CommandAllocator* cmdAlloc,
-    ID3D12CommandQueue* cmdQueue, ID3D12GraphicsCommandList7* cmdList, ID3D12Fence1* fence,
-    ComScope<ID3D12Resource2>& uploadBuffer, ComScope<ID3D12Resource2>& vertexBuffer,
-    D3D12_VERTEX_BUFFER_VIEW& vbv) {
+  ID3D12CommandQueue* cmdQueue, ID3D12GraphicsCommandList7* cmdList, ID3D12Fence1* fence,
+  ComScope<ID3D12Resource2>& uploadBuffer, ComScope<ID3D12Resource2>& vertexBuffer,
+  ComScope<ID3D12RootSignature>& rootSignature, ComScope<ID3D12PipelineState>& pipelineState,
+  D3D12_VERTEX_BUFFER_VIEW& vbv) {
   D3D12_HEAP_PROPERTIES hpDefault{
-      .Type = D3D12_HEAP_TYPE_DEFAULT,
-      .CPUPageProperty = D3D12_CPU_PAGE_PROPERTY_UNKNOWN,
-      .MemoryPoolPreference = D3D12_MEMORY_POOL_UNKNOWN,
-      .CreationNodeMask = 0,
-      .VisibleNodeMask = 0
+    .Type = D3D12_HEAP_TYPE_DEFAULT,
+    .CPUPageProperty = D3D12_CPU_PAGE_PROPERTY_UNKNOWN,
+    .MemoryPoolPreference = D3D12_MEMORY_POOL_UNKNOWN,
+    .CreationNodeMask = 0,
+    .VisibleNodeMask = 0
   };
   D3D12_HEAP_PROPERTIES hpUpload{
-      .Type = D3D12_HEAP_TYPE_UPLOAD,
-      .CPUPageProperty = D3D12_CPU_PAGE_PROPERTY_UNKNOWN,
-      .MemoryPoolPreference = D3D12_MEMORY_POOL_UNKNOWN,
-      .CreationNodeMask = 0,
-      .VisibleNodeMask = 0
+    .Type = D3D12_HEAP_TYPE_UPLOAD,
+    .CPUPageProperty = D3D12_CPU_PAGE_PROPERTY_UNKNOWN,
+    .MemoryPoolPreference = D3D12_MEMORY_POOL_UNKNOWN,
+    .CreationNodeMask = 0,
+    .VisibleNodeMask = 0
   };
 
   D3D12_RESOURCE_DESC rd{
-      .Dimension = D3D12_RESOURCE_DIMENSION_BUFFER,
-      .Alignment = D3D12_DEFAULT_RESOURCE_PLACEMENT_ALIGNMENT,
-      .Width = 1024,
-      .Height = 1,
-      .DepthOrArraySize = 1,
-      .MipLevels = 1,
-      .Format = DXGI_FORMAT_UNKNOWN,
-      .SampleDesc = {.Count = 1, .Quality = 0},
-      .Layout = D3D12_TEXTURE_LAYOUT_ROW_MAJOR,
-      .Flags = D3D12_RESOURCE_FLAG_NONE
+    .Dimension = D3D12_RESOURCE_DIMENSION_BUFFER,
+    .Alignment = D3D12_DEFAULT_RESOURCE_PLACEMENT_ALIGNMENT,
+    .Width = 1024,
+    .Height = 1,
+    .DepthOrArraySize = 1,
+    .MipLevels = 1,
+    .Format = DXGI_FORMAT_UNKNOWN,
+    .SampleDesc = {.Count = 1, .Quality = 0},
+    .Layout = D3D12_TEXTURE_LAYOUT_ROW_MAJOR,
+    .Flags = D3D12_RESOURCE_FLAG_NONE
   };
 
   D3D12_INPUT_ELEMENT_DESC vertexLayout[] = {
-      {"Position", 0, DXGI_FORMAT_R32G32_FLOAT, 0, 0, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA,
-          0},
+    {"Position", 0, DXGI_FORMAT_R32G32_FLOAT, 0, 0, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA,
+      0},
   };
 
-  Shader vertexShader("vertexShader.dxil");
-  Shader pixelShader("pixelShader.dxil");
+  Shader rootSignatureShader("rootSignature.dxil");
+  Shader vertexShader("vertex.dxil");
+  Shader pixelShader("pixel.dxil");
+
+  HRESULT hr = device->CreateRootSignature(0, rootSignatureShader.GetBuffer(),
+    rootSignatureShader.GetSize(), IID_PPV_ARGS(&rootSignature));
+  if (FAILED(hr))
+    return hr;
 
   D3D12_GRAPHICS_PIPELINE_STATE_DESC gfxPsod{};
+  gfxPsod.pRootSignature = rootSignature;
   gfxPsod.IBStripCutValue = D3D12_INDEX_BUFFER_STRIP_CUT_VALUE_DISABLED;
   gfxPsod.InputLayout.NumElements = _countof(vertexLayout);
   gfxPsod.InputLayout.pInputElementDescs = vertexLayout;
@@ -286,13 +289,85 @@ HRESULT RHI::CreateUploadAndVertexBuffer(ID3D12Device10* device, ID3D12CommandAl
   gfxPsod.VS.BytecodeLength = vertexShader.GetSize();
   gfxPsod.PS.pShaderBytecode = pixelShader.GetBuffer();
   gfxPsod.PS.BytecodeLength = pixelShader.GetSize();
+  gfxPsod.RasterizerState = {
+    .FillMode = D3D12_FILL_MODE_SOLID,
+    .CullMode = D3D12_CULL_MODE_NONE,
+    .FrontCounterClockwise = false,
+    .DepthBias = 0,
+    .DepthBiasClamp = 0,
+    .SlopeScaledDepthBias = 0,
+    .DepthClipEnable = false,
+    .MultisampleEnable = false,
+    .AntialiasedLineEnable = false,
+    .ForcedSampleCount = 0,
+    // .ConservativeRaster = idk,
+  };
+  gfxPsod.StreamOutput = {
+    .pSODeclaration = nullptr,
+    .NumEntries = 0,
+    .pBufferStrides = nullptr,
+    .NumStrides = 0,
+    .RasterizedStream = 0,
+  };
+  gfxPsod.NumRenderTargets = 1;
+  gfxPsod.RTVFormats[0] = DXGI_FORMAT_R8G8B8A8_UNORM;
+  gfxPsod.DSVFormat = DXGI_FORMAT_UNKNOWN;
+  gfxPsod.BlendState.AlphaToCoverageEnable = false;
+  gfxPsod.BlendState.IndependentBlendEnable = false;
+  gfxPsod.BlendState.RenderTarget[0] = {
+    .BlendEnable = false,
+    .LogicOpEnable = false,
+    .SrcBlend = D3D12_BLEND_ZERO,
+    .DestBlend = D3D12_BLEND_ZERO,
+    .BlendOp = D3D12_BLEND_OP_ADD,
+    .SrcBlendAlpha = D3D12_BLEND_ZERO,
+    .DestBlendAlpha = D3D12_BLEND_ZERO,
+    .BlendOpAlpha = D3D12_BLEND_OP_ADD,
+    .LogicOp = D3D12_LOGIC_OP_NOOP,
+    .RenderTargetWriteMask = D3D12_COLOR_WRITE_ENABLE_ALL,
+  };
+  gfxPsod.DepthStencilState = {
+    .DepthEnable = false,
+    .DepthWriteMask = D3D12_DEPTH_WRITE_MASK_ZERO,
+    .DepthFunc = D3D12_COMPARISON_FUNC_ALWAYS,
+    .StencilEnable = false,
+    .StencilReadMask = 0,
+    .StencilWriteMask = 0,
+    .FrontFace =
+      {
+        .StencilDepthFailOp = D3D12_STENCIL_OP_KEEP,
+        .StencilPassOp = D3D12_STENCIL_OP_KEEP,
+        .StencilFunc = D3D12_COMPARISON_FUNC_ALWAYS,
+      },
+    .BackFace = {
+      .StencilDepthFailOp = D3D12_STENCIL_OP_KEEP,
+      .StencilPassOp = D3D12_STENCIL_OP_KEEP,
+      .StencilFunc = D3D12_COMPARISON_FUNC_ALWAYS,
+    },
+  };
+  gfxPsod.SampleMask = 0xFFFFFFFF;
+  gfxPsod.SampleDesc.Count = 1;
+  gfxPsod.SampleDesc.Quality = 0;
+  gfxPsod.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
+  gfxPsod.DS.BytecodeLength = 0;
+  gfxPsod.DS.pShaderBytecode = nullptr;
+  gfxPsod.HS.BytecodeLength = 0;
+  gfxPsod.HS.pShaderBytecode = nullptr;
+  gfxPsod.GS.BytecodeLength = 0;
+  gfxPsod.GS.pShaderBytecode = nullptr;
+  gfxPsod.NodeMask = 0;
+  gfxPsod.CachedPSO.CachedBlobSizeInBytes = 0;
+  gfxPsod.CachedPSO.pCachedBlob = nullptr;
+  gfxPsod.Flags = D3D12_PIPELINE_STATE_FLAG_NONE;
 
-  HRESULT hr = device->CreateCommittedResource(&hpUpload, D3D12_HEAP_FLAG_NONE, &rd,
-      D3D12_RESOURCE_STATE_GENERIC_READ, nullptr, IID_PPV_ARGS(&uploadBuffer));
+  device->CreateGraphicsPipelineState(&gfxPsod, IID_PPV_ARGS(&pipelineState));
+
+  hr = device->CreateCommittedResource(&hpUpload, D3D12_HEAP_FLAG_NONE, &rd,
+    D3D12_RESOURCE_STATE_GENERIC_READ, nullptr, IID_PPV_ARGS(&uploadBuffer));
   if (FAILED(hr))
     return hr;
   hr = device->CreateCommittedResource(&hpDefault, D3D12_HEAP_FLAG_NONE, &rd,
-      D3D12_RESOURCE_STATE_COPY_DEST, nullptr, IID_PPV_ARGS(&vertexBuffer));
+    D3D12_RESOURCE_STATE_COPY_DEST, nullptr, IID_PPV_ARGS(&vertexBuffer));
   if (FAILED(hr))
     return hr;
 
@@ -311,7 +386,7 @@ HRESULT RHI::CreateUploadAndVertexBuffer(ID3D12Device10* device, ID3D12CommandAl
   cmdList->CopyBufferRegion(vertexBuffer, 0, uploadBuffer, 0, sizeof(verticies));
 
   logDebug(std::format("Vertex Buffer: {}\nUpload Buffer: {}",
-      static_cast<void*>(vertexBuffer.get()), static_cast<void*>(uploadBuffer.get())));
+    static_cast<void*>(vertexBuffer.get()), static_cast<void*>(uploadBuffer.get())));
 
   ID3D12CommandList* list[] = {cmdList};
   cmdQueue->ExecuteCommandLists(1, list);
@@ -319,14 +394,14 @@ HRESULT RHI::CreateUploadAndVertexBuffer(ID3D12Device10* device, ID3D12CommandAl
   hr = cmdQueue->Signal(fence, 1);
 
   vbv.BufferLocation = vertexBuffer->GetGPUVirtualAddress();
-  vbv.SizeInBytes = sizeof(Vertex) * _countof(verticies);
+  vbv.SizeInBytes = sizeof(verticies);
   vbv.StrideInBytes = sizeof(Vertex);
 
   return hr;
 }
 
 HRESULT RHI::CreateSwapChain(IDXGIFactory7* factory, ComScope<IDXGISwapChain4>& swapChain,
-    ID3D12CommandQueue* cmdQueue, uint16_t width, uint16_t height, HWND hwnd, bool windowed) {
+  ID3D12CommandQueue* cmdQueue, uint16_t width, uint16_t height, HWND hwnd, bool windowed) {
   DXGI_SWAP_CHAIN_DESC1 desc = {};
   desc.Width = width;
   desc.Height = height;
@@ -346,7 +421,7 @@ HRESULT RHI::CreateSwapChain(IDXGIFactory7* factory, ComScope<IDXGISwapChain4>& 
 
   IDXGISwapChain1* tempSwapChain = nullptr;
   HRESULT hr =
-      factory->CreateSwapChainForHwnd(cmdQueue, hwnd, &desc, &descFull, nullptr, &tempSwapChain);
+    factory->CreateSwapChainForHwnd(cmdQueue, hwnd, &desc, &descFull, nullptr, &tempSwapChain);
   if (FAILED(hr))
     return hr;
 
@@ -357,8 +432,8 @@ HRESULT RHI::CreateSwapChain(IDXGIFactory7* factory, ComScope<IDXGISwapChain4>& 
 }
 
 HRESULT RHI::GetBuffers(ID3D12Device10* device, ComScope<IDXGISwapChain4>& swapChain,
-    ComScope<ID3D12Resource2> buffers[], ID3D12DescriptorHeap* rtvHeap,
-    Array<D3D12_CPU_DESCRIPTOR_HANDLE, FRAME_COUNT>& rtvHandles) {
+  ComScope<ID3D12Resource2> buffers[], ID3D12DescriptorHeap* rtvHeap,
+  Array<D3D12_CPU_DESCRIPTOR_HANDLE, FRAME_COUNT>& rtvHandles) {
   D3D12_RENDER_TARGET_VIEW_DESC desc{};
   desc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
   desc.ViewDimension = D3D12_RTV_DIMENSION_TEXTURE2D;
@@ -375,8 +450,8 @@ HRESULT RHI::GetBuffers(ID3D12Device10* device, ComScope<IDXGISwapChain4>& swapC
 }
 
 HRESULT RHI::CreateRtvHeap(ID3D12Device10* device, IDXGISwapChain4* swapChain,
-    ComScope<ID3D12DescriptorHeap>& rtvHeap,
-    Array<D3D12_CPU_DESCRIPTOR_HANDLE, FRAME_COUNT>& rtvHandles) {
+  ComScope<ID3D12DescriptorHeap>& rtvHeap,
+  Array<D3D12_CPU_DESCRIPTOR_HANDLE, FRAME_COUNT>& rtvHandles) {
   D3D12_DESCRIPTOR_HEAP_DESC desc = {};
   desc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_RTV;
   desc.NumDescriptors = 2;
@@ -397,31 +472,32 @@ HRESULT RHI::CreateRtvHeap(ID3D12Device10* device, IDXGISwapChain4* swapChain,
   return 0;
 }
 
-HRESULT RHI::CreateSignature(ID3D12Device10* device, ComScope<ID3D12RootSignature>& rootSignature,
-    ComScope<ID3DBlob>& signatureBlob, ComScope<ID3DBlob>& errorBlob) {
-  D3D12_ROOT_PARAMETER rootParameters[1] = {};
-  rootParameters[0].ParameterType = D3D12_ROOT_PARAMETER_TYPE_32BIT_CONSTANTS;
-  rootParameters[0].Constants.Num32BitValues = 1;
-  rootParameters[0].Constants.ShaderRegister = 0;
-  rootParameters[0].Constants.RegisterSpace = 0;
-  rootParameters[0].ShaderVisibility = D3D12_SHADER_VISIBILITY_VERTEX;
-
-  D3D12_ROOT_SIGNATURE_DESC rootSignatureDesc = {};
-  rootSignatureDesc.NumParameters = _countof(rootParameters);
-  rootSignatureDesc.pParameters = rootParameters;
-  rootSignatureDesc.NumStaticSamplers = 0;
-  rootSignatureDesc.pStaticSamplers = nullptr;
-  rootSignatureDesc.Flags = D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT;
-
-  HRESULT hr = D3D12SerializeRootSignature(&rootSignatureDesc, D3D_ROOT_SIGNATURE_VERSION_1,
-      &signatureBlob, &errorBlob);
-  if (FAILED(hr))
-    return hr;
-
-  hr = device->CreateRootSignature(0, signatureBlob->GetBufferPointer(),
-      signatureBlob->GetBufferSize(), IID_PPV_ARGS(&rootSignature));
-  if (FAILED(hr))
-    return hr;
-  return hr;
-}
+// HRESULT RHI::CreateSignature(ID3D12Device10* device, ComScope<ID3D12RootSignature>&
+// rootSignature,
+//     ComScope<ID3DBlob>& signatureBlob, ComScope<ID3DBlob>& errorBlob) {
+//   D3D12_ROOT_PARAMETER rootParameters[1] = {};
+//   rootParameters[0].ParameterType = D3D12_ROOT_PARAMETER_TYPE_32BIT_CONSTANTS;
+//   rootParameters[0].Constants.Num32BitValues = 1;
+//   rootParameters[0].Constants.ShaderRegister = 0;
+//   rootParameters[0].Constants.RegisterSpace = 0;
+//   rootParameters[0].ShaderVisibility = D3D12_SHADER_VISIBILITY_VERTEX;
+//
+//   D3D12_ROOT_SIGNATURE_DESC rootSignatureDesc = {};
+//   rootSignatureDesc.NumParameters = _countof(rootParameters);
+//   rootSignatureDesc.pParameters = rootParameters;
+//   rootSignatureDesc.NumStaticSamplers = 0;
+//   rootSignatureDesc.pStaticSamplers = nullptr;
+//   rootSignatureDesc.Flags = D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT;
+//
+//   HRESULT hr = D3D12SerializeRootSignature(&rootSignatureDesc, D3D_ROOT_SIGNATURE_VERSION_1,
+//       &signatureBlob, &errorBlob);
+//   if (FAILED(hr))
+//     return hr;
+//
+//   hr = device->CreateRootSignature(0, signatureBlob->GetBufferPointer(),
+//       signatureBlob->GetBufferSize(), IID_PPV_ARGS(&rootSignature));
+//   if (FAILED(hr))
+//     return hr;
+//   return hr;
+// }
 };  // namespace Ngin

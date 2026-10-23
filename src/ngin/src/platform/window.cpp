@@ -76,25 +76,25 @@ Error Create(Window& window) {
   logTrace("Registering class");
   window.w_class = RegisterClassExW(&wc);
   if (!window.w_class) {
-    Ngin::logError(std::format("Creating window failed. Couldnt RegisterClass Error code {}",
-        GetLastError()));
+    Ngin::logError(
+      std::format("Creating window failed. Couldnt RegisterClass Error code {}", GetLastError()));
     return Error{
-        PlatformError,
-        std::format("Creating window failed. Couldnt RegisterClass Error code {}", GetLastError())
+      PlatformError,
+      std::format("Creating window failed. Couldnt RegisterClass Error code {}", GetLastError())
     };
   }
 
   logTrace("Creating windowex");
   window.hwnd = CreateWindowExW(WS_EX_OVERLAPPEDWINDOW | WS_EX_APPWINDOW, className.c_str(),
-      windowName.c_str(), WS_OVERLAPPEDWINDOW, CW_USEDEFAULT, CW_USEDEFAULT, window.dimensions.x,
-      window.dimensions.y, nullptr, nullptr, instance, nullptr);
+    windowName.c_str(), WS_OVERLAPPEDWINDOW, CW_USEDEFAULT, CW_USEDEFAULT, window.dimensions.x,
+    window.dimensions.y, nullptr, nullptr, instance, nullptr);
 
   if (window.hwnd == nullptr) {
     Ngin::logError(std::format("Creating Window failed: Couldnt CreateWindowEx Error code {}",
-        GetLastError()));
+      GetLastError()));
     return Error{
-        PlatformError, std::format("Creating Window failed: Couldnt CreateWindowEx Error code {}",
-                           GetLastError())
+      PlatformError,
+      std::format("Creating Window failed: Couldnt CreateWindowEx Error code {}", GetLastError())
     };
   }
 
@@ -154,6 +154,7 @@ Error Update(Window& window) {
   }
   Error err = window.rhi->BeginFrame();
 
+  window.rhi->DoPSO();
   window.rhi->DoIA();
 
   if (err)
@@ -182,7 +183,7 @@ Error Resize(Window& window, bool autoResize, std::optional<Vec2Rounded> newDime
       window.dimensions = newDimensions.value();
     else
       return Error{
-          PlatformError, "No newDimensions were passed even though autoResize was false"
+        PlatformError, "No newDimensions were passed even though autoResize was false"
       };
   }
 
@@ -213,8 +214,8 @@ Error SetFullscreen(Window& window, bool enable) {
     monitorInfo.cbSize = sizeof(monitorInfo);
     if (GetMonitorInfo(monitor, &monitorInfo)) {
       SetWindowPos(window.hwnd, nullptr, monitorInfo.rcMonitor.left, monitorInfo.rcMonitor.top,
-          monitorInfo.rcMonitor.right - monitorInfo.rcMonitor.left,
-          monitorInfo.rcMonitor.bottom - monitorInfo.rcMonitor.top, SWP_NOZORDER);
+        monitorInfo.rcMonitor.right - monitorInfo.rcMonitor.left,
+        monitorInfo.rcMonitor.bottom - monitorInfo.rcMonitor.top, SWP_NOZORDER);
       Resize(window);
     }
   } else {

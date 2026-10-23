@@ -14,8 +14,8 @@ struct Vertex {
   f32 x, y;
 };
 constexpr Vertex verticies[] = {
-    // T1
-    {-1.f, -1.f}, {0.f, 1.f}, {1.f, -1.f}
+  // T1
+  {-1.f, -1.f}, {0.f, 1.f}, {1.f, -1.f}
 };
 
 struct RHI : NonCopyable {
@@ -64,13 +64,13 @@ struct RHI : NonCopyable {
  private:
   template <size_t N>
   RHI(ComScope<ID3D12Device10>& device, ComScope<ID3D12CommandQueue>& cmdQueue,
-      ComScope<ID3D12Fence1>& fence, HANDLE fenceEvent, ComScope<IDXGISwapChain4>& swapChain,
-      ComScope<ID3D12CommandAllocator>& cmdAlloc, ComScope<ID3D12GraphicsCommandList7>& cmdList,
-      ComScope<ID3D12DescriptorHeap>& rtvHeap, Array<D3D12_CPU_DESCRIPTOR_HANDLE, N> rtvHandles,
-      ComScope<IDXGIFactory7>& factory, ComScope<ID3D12RootSignature>& rootSignature,
-      ComScope<ID3D12PipelineState>& pipelineState, List<ComScope<ID3D12Resource>>& renderTargets,
-      ComScope<ID3D12Resource2>& uploadBuffer, ComScope<ID3D12Resource2>& vertexBuffer,
-      D3D12_VERTEX_BUFFER_VIEW& vbv)
+    ComScope<ID3D12Fence1>& fence, HANDLE fenceEvent, ComScope<IDXGISwapChain4>& swapChain,
+    ComScope<ID3D12CommandAllocator>& cmdAlloc, ComScope<ID3D12GraphicsCommandList7>& cmdList,
+    ComScope<ID3D12DescriptorHeap>& rtvHeap, Array<D3D12_CPU_DESCRIPTOR_HANDLE, N> rtvHandles,
+    ComScope<IDXGIFactory7>& factory, ComScope<ID3D12RootSignature>& rootSignature,
+    ComScope<ID3D12PipelineState>& pipelineState, List<ComScope<ID3D12Resource>>& renderTargets,
+    ComScope<ID3D12Resource2>& uploadBuffer, ComScope<ID3D12Resource2>& vertexBuffer,
+    D3D12_VERTEX_BUFFER_VIEW& vbv)
       : fenceEvent(fenceEvent) {
     this->device = std::move(device);
     DXDebugLayer::Get().InitDevice(this->device);
@@ -110,6 +110,10 @@ struct RHI : NonCopyable {
   Error EndFrame();
   Error Resize(uint16_t width, uint16_t height);
   // TODO do not void pls
+  inline void DoPSO() {
+    cmdList->SetPipelineState(pipelineState);
+    cmdList->SetGraphicsRootSignature(rootSignature);
+  }
   inline void DoIA() {
     cmdList->IASetVertexBuffers(0, 1, &vbv);
     cmdList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
@@ -160,33 +164,34 @@ struct RHI : NonCopyable {
   D3D12_VERTEX_BUFFER_VIEW vbv;
 
   static const uint32_t SWAPCHAIN_FLAGS =
-      DXGI_SWAP_CHAIN_FLAG_ALLOW_MODE_SWITCH | DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING;
+    DXGI_SWAP_CHAIN_FLAG_ALLOW_MODE_SWITCH | DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING;
 
   static HRESULT CreateCommandQueue(ID3D12Device10* device,
-      ComScope<ID3D12CommandQueue>& cmdQueue);
+    ComScope<ID3D12CommandQueue>& cmdQueue);
   static HRESULT CreateFence(ID3D12Device10* device, const uint64_t fenceValue,
-      ComScope<ID3D12Fence1>& fence, HANDLE& fenceEvent);
+    ComScope<ID3D12Fence1>& fence, HANDLE& fenceEvent);
   static HRESULT CreateCommandAllocator(ID3D12Device10* device,
-      ComScope<ID3D12CommandAllocator>& cmdAlloc);
+    ComScope<ID3D12CommandAllocator>& cmdAlloc);
   static HRESULT CreateGraphicsCommandList7(ID3D12Device10* device,
-      ComScope<ID3D12GraphicsCommandList7>& cmdList, ID3D12CommandAllocator* cmdAlloc);
+    ComScope<ID3D12GraphicsCommandList7>& cmdList, ID3D12CommandAllocator* cmdAlloc);
   static HRESULT CreateSwapChain(IDXGIFactory7* factory, ComScope<IDXGISwapChain4>& swapChain,
-      ID3D12CommandQueue* cmdQueue, uint16_t width, uint16_t height, HWND hwnd, bool windowed);
+    ID3D12CommandQueue* cmdQueue, uint16_t width, uint16_t height, HWND hwnd, bool windowed);
   static HRESULT GetBuffers(ID3D12Device10* device, ComScope<IDXGISwapChain4>& swapChain,
-      ComScope<ID3D12Resource2> buffers[], ID3D12DescriptorHeap* rtvHeap,
-      Array<D3D12_CPU_DESCRIPTOR_HANDLE, FRAME_COUNT>& rtvHandles);
+    ComScope<ID3D12Resource2> buffers[], ID3D12DescriptorHeap* rtvHeap,
+    Array<D3D12_CPU_DESCRIPTOR_HANDLE, FRAME_COUNT>& rtvHandles);
   static HRESULT CreateRtvHeap(ID3D12Device10* device, IDXGISwapChain4* swapChain,
-      ComScope<ID3D12DescriptorHeap>& rtvHeap,
-      Array<D3D12_CPU_DESCRIPTOR_HANDLE, FRAME_COUNT>& rtvHandles);
+    ComScope<ID3D12DescriptorHeap>& rtvHeap,
+    Array<D3D12_CPU_DESCRIPTOR_HANDLE, FRAME_COUNT>& rtvHandles);
   static HRESULT CreateSignature(ID3D12Device10* device,
-      ComScope<ID3D12RootSignature>& rootSignature, ComScope<ID3DBlob>& signatureBlob,
-      ComScope<ID3DBlob>& errorBlob);
+    ComScope<ID3D12RootSignature>& rootSignature, ComScope<ID3DBlob>& signatureBlob,
+    ComScope<ID3DBlob>& errorBlob);
   static HRESULT CreateCommandList(ID3D12Device10* device,
-      ComScope<ID3D12GraphicsCommandList7>& cmdList, ID3D12CommandAllocator* cmdAlloc);
+    ComScope<ID3D12GraphicsCommandList7>& cmdList, ID3D12CommandAllocator* cmdAlloc);
   static HRESULT CreateUploadAndVertexBuffer(ID3D12Device10* device,
-      ID3D12CommandAllocator* cmdAlloc, ID3D12CommandQueue* cmdQueue,
-      ID3D12GraphicsCommandList7* cmdList, ID3D12Fence1* fence,
-      ComScope<ID3D12Resource2>& uploadBuffer, ComScope<ID3D12Resource2>& vertexBuffer,
-      D3D12_VERTEX_BUFFER_VIEW& vbv);
+    ID3D12CommandAllocator* cmdAlloc, ID3D12CommandQueue* cmdQueue,
+    ID3D12GraphicsCommandList7* cmdList, ID3D12Fence1* fence,
+    ComScope<ID3D12Resource2>& uploadBuffer, ComScope<ID3D12Resource2>& vertexBuffer,
+    ComScope<ID3D12RootSignature>& rootSignature, ComScope<ID3D12PipelineState>& pipelineState,
+    D3D12_VERTEX_BUFFER_VIEW& vbv);
 };
 }  // namespace Ngin

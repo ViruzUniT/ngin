@@ -24,11 +24,38 @@ links({
 })
 
 filter("system:windows")
-prebuildcommands({
-	"{MKDIR} %{cfg.targetdir}",
-	'dxc -T vs_6_0 -E main -Fo "%{cfg.targetdir}/vertex.dxil" ../src/ngin/shaders/vertex.hlsl',
-	'dxc -T ps_6_0 -E main -Fo "%{cfg.targetdir}/pixel.dxil" ../src/ngin/shaders/pixel.hlsl',
-})
+local shaderProfiles = {
+	vs = "vs_6_0",
+	vertex = "vs_6_0",
+	ps = "ps_6_0",
+	pixel = "ps_6_0",
+	gs = "gs_6_0",
+	geometry = "gs_6_0",
+	hs = "hs_6_0",
+	hull = "hs_6_0",
+	ds = "ds_6_0",
+	domain = "ds_6_0",
+	cs = "cs_6_0",
+	compute = "cs_6_0",
+	rootSignature = "rootsig_1_1",
+}
+
+local shaderCommands = { "{MKDIR} %{cfg.targetdir}" }
+for _, shader in ipairs(os.matchfiles("../ngin/shaders/*.hlsl")) do
+	local filename = path.getbasename(shader)
+	local stage = path.getbasename(shader):match("%.([^.]+)$") or filename
+	local profile = filename:lower() == "rootsignature" and "rootsig_1_1" or shaderProfiles[stage:lower()]
+	if profile then
+		local output = path.join("%{cfg.targetdir}", filename .. ".dxil")
+		local entryPoint = profile == "rootsig_1_1" and "-E ROOTSIG " or "-E main "
+		table.insert(
+			shaderCommands,
+			string.format('dxc -T %s %s-Fo "%s" "../src/ngin/shaders/%s.hlsl"', profile, entryPoint, output, filename)
+		)
+	end
+end
+
+prebuildcommands(shaderCommands)
 
 links({
 	"user32",

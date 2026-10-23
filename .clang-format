@@ -4,6 +4,7 @@ AlignAfterOpenBracket: DontAlign
 AllowAllArgumentsOnNextLine: false
 # DerivePointerAlignment: true
 BasedOnStyle: Google
+ContinuationIndentWidth: 2
 AllowShortIfStatementsOnASingleLine: Never
 ColumnLimit: 98
 BreakAfterOpenBracketBracedList: true
