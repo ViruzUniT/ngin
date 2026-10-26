@@ -71,4 +71,5 @@ Testing/
 # binaries
 bin/
 bin-int/
+.tools/
 .luarc.json
