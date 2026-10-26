@@ -91,6 +91,7 @@ HRESULT RHI::Create(HWND hwnd, uint16_t windowWidth, uint16_t windowHeight, Scop
   }
 
   logDebug("Creating RHI");
+  // logDebug(std::format("Rtv handels: {}", rtvHandles[0].ptr));
   rhi.reset(new RHI(device, cmdQueue, fence, fenceEvent, swapChain, cmdAlloc, cmdList, rtvHeap,
     rtvHandles, factory, rootSignature, pipelineState, renderTargets, uploadBuffer, vertexBuffer,
     vbv));
@@ -358,7 +359,11 @@ HRESULT RHI::CreateUploadAndVertexBuffer(ID3D12Device10* device, ID3D12CommandAl
   gfxPsod.CachedPSO.pCachedBlob = nullptr;
   gfxPsod.Flags = D3D12_PIPELINE_STATE_FLAG_NONE;
 
-  device->CreateGraphicsPipelineState(&gfxPsod, IID_PPV_ARGS(&pipelineState));
+  hr = device->CreateGraphicsPipelineState(&gfxPsod, IID_PPV_ARGS(&pipelineState));
+  if (FAILED(hr)) {
+    logError("Creating the graphics pipelineState failed");
+    return hr;
+  }
 
   hr = device->CreateCommittedResource(&hpUpload, D3D12_HEAP_FLAG_NONE, &rd,
     D3D12_RESOURCE_STATE_GENERIC_READ, nullptr, IID_PPV_ARGS(&uploadBuffer));
@@ -381,7 +386,33 @@ HRESULT RHI::CreateUploadAndVertexBuffer(ID3D12Device10* device, ID3D12CommandAl
   mempcpy(uploadBufferAddr, verticies, sizeof(verticies));
   uploadBuffer->Unmap(0, &writtenRange);
 
+  hr = cmdAlloc->Reset();
+  if (FAILED(hr)) {
+    logError("Resetting the command allocator for the vertex upload failed");
+    return hr;
+  }
+
+  hr = cmdList->Reset(cmdAlloc, nullptr);
+  if (FAILED(hr)) {
+    logError("Resetting the command list for the vertex upload failed");
+    return hr;
+  }
+
   cmdList->CopyBufferRegion(vertexBuffer, 0, uploadBuffer, 0, sizeof(verticies));
+
+  D3D12_RESOURCE_BARRIER vertexBufferBarrier{};
+  vertexBufferBarrier.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
+  vertexBufferBarrier.Transition.pResource = vertexBuffer;
+  vertexBufferBarrier.Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
+  vertexBufferBarrier.Transition.StateBefore = D3D12_RESOURCE_STATE_COPY_DEST;
+  vertexBufferBarrier.Transition.StateAfter = D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER;
+  cmdList->ResourceBarrier(1, &vertexBufferBarrier);
+
+  hr = cmdList->Close();
+  if (FAILED(hr)) {
+    logError("Closing the vertex upload command list failed");
+    return hr;
+  }
 
   logDebug(std::format("Vertex Buffer: {}\nUpload Buffer: {}",
     static_cast<void*>(vertexBuffer.get()), static_cast<void*>(uploadBuffer.get())));
@@ -390,6 +421,10 @@ HRESULT RHI::CreateUploadAndVertexBuffer(ID3D12Device10* device, ID3D12CommandAl
   cmdQueue->ExecuteCommandLists(1, list);
 
   hr = cmdQueue->Signal(fence, 1);
+  if (FAILED(hr)) {
+    logError("Signaling the vertex upload fence failed");
+    return hr;
+  }
 
   vbv.BufferLocation = vertexBuffer->GetGPUVirtualAddress();
   vbv.SizeInBytes = sizeof(verticies);

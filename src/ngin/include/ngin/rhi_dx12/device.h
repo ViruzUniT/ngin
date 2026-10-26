@@ -123,8 +123,8 @@ struct RHI : NonCopyable {
     vp.TopLeftX = vp.TopLeftY = 0;
     vp.Width = windowDimensions.x;
     vp.Height = windowDimensions.y;
-    vp.MinDepth = 1.f;
-    vp.MaxDepth = 0.f;
+    vp.MinDepth = 0.f;
+    vp.MaxDepth = 1.f;
     cmdList->RSSetViewports(1, &vp);
 
     RECT scRect;
