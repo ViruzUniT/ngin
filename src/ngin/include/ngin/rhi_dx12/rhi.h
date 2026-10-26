@@ -6,6 +6,8 @@
 #include <ngin/rhi/shader.h>
 #include <ngin/rhi_dx12/fence.h>
 
+#include <array>
+
 namespace Ngin {
 class RHI : public NonCopyableNonMovable {
  public:

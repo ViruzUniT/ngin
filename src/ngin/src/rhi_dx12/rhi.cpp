@@ -418,7 +418,7 @@ Error RHI::CreateUploadAndVertexBuffer() {
     return Error{InvalidArgument, std::format("Mapping the upload buffer failed: {}", hr)};
 
   D3D12_RANGE writtenRange{0, sizeof(verticies)};
-  mempcpy(uploadBufferAddr, verticies, sizeof(verticies));
+  memcpy(uploadBufferAddr, verticies, sizeof(verticies));
   uploadBuffer->Unmap(0, &writtenRange);
 
   hr = cmdAlloc->Reset();
