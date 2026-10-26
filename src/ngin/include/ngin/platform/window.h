@@ -1,6 +1,6 @@
 #pragma once
 #include <ngin/pch.h>
-#include <ngin/rhi_dx12/device.h>
+#include <ngin/rhi_dx12/rhi.h>
 #include <stdint.h>
 
 namespace Ngin {
@@ -27,7 +27,7 @@ Error Create(Window& window);
 Error SetShow(Window& window, CmdShow showType);
 Error Update(Window& window);
 Error Resize(Window& window, bool autoResize = true,
-    std::optional<Vec2Rounded> newDimensions = {});
+  std::optional<Vec2Rounded> newDimensions = {});
 Error SetFullscreen(Window& window, bool enable);
 Error Close(Window& window);
 }  // namespace Window

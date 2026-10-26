@@ -112,4 +112,7 @@ using List = std::vector<T>;
 template <typename T, std::size_t N>
 using Array = std::array<T, N>;
 
+struct Vertex {
+  f32 x, y;
+};
 }  // namespace Ngin
