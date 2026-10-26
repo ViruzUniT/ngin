@@ -133,6 +133,11 @@ struct RHI : NonCopyable {
     scRect.bottom = windowDimensions.y;
     cmdList->RSSetScissorRects(1, &scRect);
   }
+  // currently not working cuz of blend settings
+  inline void DoOM() {
+    f32 bf[] = {0.1f, 0.1f, 0.1f, 0.1f};
+    cmdList->OMSetBlendFactor(bf);
+  }
   inline void Draw() { cmdList->DrawInstanced(_countof(verticies), 1, 0, 0); }
 
   inline Error GetBuffers() {

@@ -91,7 +91,6 @@ HRESULT RHI::Create(HWND hwnd, uint16_t windowWidth, uint16_t windowHeight, Scop
   }
 
   logDebug("Creating RHI");
-  // logDebug(std::format("Rtv handels: {}", rtvHandles[0].ptr));
   rhi.reset(new RHI(device, cmdQueue, fence, fenceEvent, swapChain, cmdAlloc, cmdList, rtvHeap,
     rtvHandles, factory, rootSignature, pipelineState, renderTargets, uploadBuffer, vertexBuffer,
     vbv));

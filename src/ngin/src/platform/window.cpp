@@ -159,6 +159,7 @@ Error Update(Window& window) {
   window.rhi->DoPSO();
   window.rhi->DoIA();
   window.rhi->DoRS(window.dimensions);
+  window.rhi->DoOM();
 
   window.rhi->Draw();
 
