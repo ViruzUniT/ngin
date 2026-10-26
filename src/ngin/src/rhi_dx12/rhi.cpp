@@ -1,9 +1,9 @@
 #include <ngin/rhi_dx12/rhi.h>
 
 namespace Ngin {
-Error RHI::Create(HWND hwnd, Vec2Rounded windowDimensions, bool& windowed, Scope<RHI>& rhi) {
+Error RHI::Create(HWND hwnd, Vec2Rounded windowDimensions, bool& fullscreen, Scope<RHI>& rhi) {
   Error err;
-  RHI* tempRhi = new RHI(hwnd, windowDimensions, windowed, err);
+  RHI* tempRhi = new RHI(hwnd, windowDimensions, fullscreen, err);
   if (err) {
     delete tempRhi;
     return err;
@@ -12,8 +12,8 @@ Error RHI::Create(HWND hwnd, Vec2Rounded windowDimensions, bool& windowed, Scope
   return Error{};
 }
 
-RHI::RHI(HWND hwnd, Vec2Rounded windowDimensions, bool& windowed, Error& err)
-    : windowed(windowed) {
+RHI::RHI(HWND hwnd, Vec2Rounded windowDimensions, bool& fullscreen, Error& err)
+    : fullscreen(fullscreen) {
   logTrace("Creating Device");
   HRESULT hr = D3D12CreateDevice(nullptr, D3D_FEATURE_LEVEL_12_1, IID_PPV_ARGS(&device));
   if (FAILED(hr)) {
@@ -50,7 +50,7 @@ RHI::RHI(HWND hwnd, Vec2Rounded windowDimensions, bool& windowed, Error& err)
     return;
 
   logTrace("Creating Swap chain");
-  err = CreateSwapChain(hwnd, windowDimensions, windowed);
+  err = CreateSwapChain(hwnd, windowDimensions);
   if (err)
     return;
 
@@ -218,7 +218,7 @@ Error RHI::CreateCommandList() {
   return Error{};
 }
 
-Error RHI::CreateSwapChain(HWND hwnd, Vec2Rounded windowDimensions, bool windowed) {
+Error RHI::CreateSwapChain(HWND hwnd, Vec2Rounded windowDimensions) {
   DXGI_SWAP_CHAIN_DESC1 desc = {};
   desc.Width = windowDimensions.x;
   desc.Height = windowDimensions.y;
@@ -234,7 +234,7 @@ Error RHI::CreateSwapChain(HWND hwnd, Vec2Rounded windowDimensions, bool windowe
   desc.Flags = SWAPCHAIN_FLAGS;
 
   DXGI_SWAP_CHAIN_FULLSCREEN_DESC descFull = {};
-  descFull.Windowed = windowed;
+  descFull.Windowed = !fullscreen;
 
   IDXGISwapChain1* tempSwapChain = nullptr;
   HRESULT hr =

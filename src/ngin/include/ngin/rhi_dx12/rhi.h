@@ -10,7 +10,7 @@ namespace Ngin {
 class RHI : public NonCopyableNonMovable {
  public:
   RHI() = delete;
-  static Error Create(HWND hwnd, Vec2Rounded windowDimensions, bool& windowed, Scope<RHI>& rhi);
+  static Error Create(HWND hwnd, Vec2Rounded windowDimensions, bool& fullscreen, Scope<RHI>& rhi);
 
  public:
   Error Update();
@@ -46,7 +46,7 @@ class RHI : public NonCopyableNonMovable {
   }
 
  private:
-  RHI(HWND hwnd, Vec2Rounded windowDimensions, bool& windowed, Error& err);
+  RHI(HWND hwnd, Vec2Rounded windowDimensions, bool& fullscreen, Error& err);
 
  private:
   static constexpr uint32_t SWAPCHAIN_FLAGS =
@@ -75,7 +75,7 @@ class RHI : public NonCopyableNonMovable {
   D3D12_VERTEX_BUFFER_VIEW vbv;
   Array<ComScope<ID3D12Resource2>, FRAME_COUNT> buffers;
   uint8_t currentBuffer = 0;
-  bool& windowed;
+  bool& fullscreen;
 
  private:
   // Creation of the attributes
@@ -83,7 +83,7 @@ class RHI : public NonCopyableNonMovable {
   Error createFence();
   Error createCommandAllocator();
   Error CreateCommandList();
-  Error CreateSwapChain(HWND hwnd, Vec2Rounded windowDimensions, bool windowed);
+  Error CreateSwapChain(HWND hwnd, Vec2Rounded windowDimensions);
   Error CreateRtvHeap();
   Error CreateUploadAndVertexBuffer();
 };
