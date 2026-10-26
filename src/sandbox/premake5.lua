@@ -41,6 +41,7 @@ local shaderProfiles = {
 }
 
 local shaderCommands = { "{MKDIR} %{cfg.targetdir}" }
+local dxc = path.getabsolute("../../.tools/dxc/1.9.2609/bin/x64/dxc.exe")
 for _, shader in ipairs(os.matchfiles("../ngin/shaders/*.hlsl")) do
 	local filename = path.getbasename(shader)
 	local stage = path.getbasename(shader):match("%.([^.]+)$") or filename
@@ -50,7 +51,7 @@ for _, shader in ipairs(os.matchfiles("../ngin/shaders/*.hlsl")) do
 		local entryPoint = profile == "rootsig_1_1" and "-E ROOTSIG " or "-E main "
 		table.insert(
 			shaderCommands,
-			string.format('dxc -T %s %s-Fo "%s" "../src/ngin/shaders/%s.hlsl"', profile, entryPoint, output, filename)
+			string.format('"%s" -T %s %s-Fo "%s" "../src/ngin/shaders/%s.hlsl"', dxc, profile, entryPoint, output, filename)
 		)
 	end
 end

@@ -10,6 +10,8 @@
 #include <type_traits>
 #include <utility>
 
+static constexpr uint8_t FRAME_COUNT = 2;
+
 #if defined(NGIN_PLATFORM_WINDOWS)
 #include <ngin/platform/windows.h>
 #include <windows.h>

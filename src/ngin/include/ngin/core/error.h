@@ -12,6 +12,7 @@ enum ErrorCode {
   Exit,
   Unknown,
   InvalidArgument,
+  InvalidArgumentIGuess,
   FileNotFound,
   PlatformError,
   GraphicsError,

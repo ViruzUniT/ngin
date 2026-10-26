@@ -58,4 +58,4 @@ Do not commit generated directories, binaries, logs, or local tool artifacts. Ke
 
 ## Update
 
-The DX12 shader pipeline now compiles the sandbox vertex and pixel HLSL to DXIL with DXC during Premake builds, then loads those compiled files when creating the graphics pipeline. DXC must be available on `PATH`. Keep this status current as the project progresses.
+The DX12 shader pipeline compiles sandbox HLSL to DXIL during Premake builds, then loads those compiled files when creating the graphics pipeline. The Windows build wrapper bootstraps pinned DXC into `.tools/dxc/` and verifies the archive checksum. Keep this status current as the project progresses.

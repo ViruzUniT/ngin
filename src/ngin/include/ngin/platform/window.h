@@ -1,6 +1,6 @@
 #pragma once
 #include <ngin/pch.h>
-#include <ngin/rhi_dx12/device.h>
+#include <ngin/rhi_dx12/rhi.h>
 #include <stdint.h>
 
 namespace Ngin {
@@ -21,13 +21,14 @@ struct Window {
   Window(uint16_t width, uint16_t height, std::string_view name, std::string_view className)
       : dimensions(width, height), name(name), className(className) {}
   Window() = default;
+  ~Window() { logTrace("Desturcting window"); }
 };
 
 Error Create(Window& window);
 Error SetShow(Window& window, CmdShow showType);
 Error Update(Window& window);
 Error Resize(Window& window, bool autoResize = true,
-    std::optional<Vec2Rounded> newDimensions = {});
+  std::optional<Vec2Rounded> newDimensions = {});
 Error SetFullscreen(Window& window, bool enable);
 Error Close(Window& window);
 }  // namespace Window

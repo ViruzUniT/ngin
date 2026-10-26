@@ -1,6 +1,60 @@
 $operation = $args[0]
 $type = ""
 
+$dxcVersion = "1.9.2609"
+$dxcArchiveUrl = "https://github.com/microsoft/DirectXShaderCompiler/releases/download/v1.9.2609/dxc_2026_09_29.zip"
+$dxcArchiveHash = "ad31b1fc8443175d204f77a611fdb3ef2ec42759bdc2f1167368de24a4a7e7f1"
+$dxcRoot = Join-Path $PSScriptRoot ".tools/dxc"
+$dxcBin = Join-Path $dxcRoot "$dxcVersion/bin/x64"
+$dxcExe = Join-Path $dxcBin "dxc.exe"
+
+function Ensure-Dxc {
+  if (Test-Path $dxcExe) {
+    return
+  }
+
+  Write-Host "DXC $dxcVersion not found. Downloading the official DirectX Shader Compiler..." -ForegroundColor Cyan
+  $archive = Join-Path $dxcRoot "dxc-$dxcVersion.zip"
+  $installDir = Join-Path $dxcRoot $dxcVersion
+  $stagingDir = Join-Path $dxcRoot "$dxcVersion-extract"
+  New-Item -ItemType Directory -Force -Path $dxcRoot | Out-Null
+
+  try {
+    Invoke-WebRequest -Uri $dxcArchiveUrl -OutFile $archive
+    $actualHash = (Get-FileHash -Path $archive -Algorithm SHA256).Hash.ToLowerInvariant()
+    if ($actualHash -ne $dxcArchiveHash) {
+      throw "DXC archive checksum mismatch. Expected $dxcArchiveHash, got $actualHash"
+    }
+
+    if (Test-Path $stagingDir) {
+      Remove-Item -LiteralPath $stagingDir -Recurse -Force
+    }
+    Expand-Archive -LiteralPath $archive -DestinationPath $stagingDir -Force
+    $stagedExe = Join-Path $stagingDir "bin/x64/dxc.exe"
+    if (-not (Test-Path $stagedExe)) {
+      throw "The downloaded DXC archive does not contain bin/x64/dxc.exe"
+    }
+
+    if (Test-Path $installDir) {
+      Remove-Item -LiteralPath $installDir -Recurse -Force
+    }
+    Move-Item -LiteralPath $stagingDir -Destination $installDir
+  }
+  catch {
+    Write-Host "DXC setup failed: $_" -ForegroundColor Red
+    exit 1
+  }
+  finally {
+    Remove-Item -LiteralPath $archive -Force -ErrorAction SilentlyContinue
+    Remove-Item -LiteralPath $stagingDir -Recurse -Force -ErrorAction SilentlyContinue
+  }
+
+  if (-not (Test-Path $dxcExe)) {
+    Write-Host "DXC setup did not produce $dxcExe" -ForegroundColor Red
+    exit 1
+  }
+}
+
 if($operation) { } 
 else {
   Write-Host "You need to pass an operation type:" -ForegroundColor Red
@@ -9,6 +63,7 @@ else {
 }
 
 if($operation -eq "gen") {
+  Ensure-Dxc
   if (-not (Get-Command premake5 -ErrorAction SilentlyContinue)) {
       Write-Host "premake5 not found on PATH`nPlease install premake5 on your system" -ForegroundColor Red
       exit 1
@@ -77,6 +132,7 @@ elseif($operation -eq "compdb") {
   $database | ConvertTo-Json -Depth 10 | Set-Content "compile_commands.json" -Encoding utf8
 }
 elseif($operation -eq "build") {
+  Ensure-Dxc
   if($args.Count -lt 2) {
     $type = "DEBUG"
   } else {

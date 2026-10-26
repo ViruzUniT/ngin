@@ -32,6 +32,8 @@ Premake5 should generate project files into:
 build/
 ```
 
+On Windows, `build.ps1 gen` and `build.ps1 build` bootstrap pinned DXC into `.tools/dxc/` when it is missing. The download is checked against its SHA-256 before extraction. Shader build commands use this cached compiler, so DXC does not need to be installed globally or added to `PATH`.
+
 Output directories should be:
 
 ```txt

@@ -99,15 +99,12 @@ Error Create(Window& window) {
   }
 
   logTrace("Creating RHI");
-  HRESULT hr = RHI::Create(window.hwnd, window.dimensions.x, window.dimensions.y, window.rhi);
+  Error err = RHI::Create(window.hwnd, window.dimensions, window.fullscreen, window.rhi);
 
-  if (FAILED(hr)) {
-    if (hr == -2147024894) {
-      Ngin::logError("Shader file could not be found");
-      return Error{FileNotFound, "Shader file could not be found"};
-    }
-    Ngin::logError(std::format("RHI creation failed: {}", hr));
-    return Error{GraphicsError, std::format("RHI creation failed: {}", hr)};
+  if (err) {
+    Ngin::logError("RHI could not be created");
+    Ngin::logError(err.message);
+    return err;
   }
 
   windows.insert_or_assign(window.hwnd, &window);
@@ -159,6 +156,7 @@ Error Update(Window& window) {
   window.rhi->DoPSO();
   window.rhi->DoIA();
   window.rhi->DoRS(window.dimensions);
+  window.rhi->DoOM();
 
   window.rhi->Draw();
 
