@@ -10,6 +10,10 @@ namespace Ngin {
 class RHI : public NonCopyableNonMovable {
  public:
   RHI() = delete;
+  ~RHI() {
+    logTrace("Destructing RHI");
+    fence.reset();
+  }
   static Error Create(HWND hwnd, Vec2Rounded windowDimensions, bool& fullscreen, Scope<RHI>& rhi);
 
  public:
@@ -66,7 +70,7 @@ class RHI : public NonCopyableNonMovable {
   ComScope<ID3D12CommandAllocator> cmdAlloc;
   ComScope<ID3D12GraphicsCommandList7> cmdList;
   ComScope<IDXGIFactory7> factory;
-  ComScope<IDXGISwapChain4> swapChain;
+  ComScope<IDXGISwapChain4> swapchain;
   ComScope<ID3D12DescriptorHeap> rtvHeap;
   Array<D3D12_CPU_DESCRIPTOR_HANDLE, FRAME_COUNT> rtvHandles;
   ComScope<ID3D12Resource2> uploadBuffer, vertexBuffer;

@@ -27,6 +27,7 @@ struct Fence : NonCopyable {
   }
 
   ~Fence() {
+    logTrace("Destructing Fence");
     Flush(FRAME_COUNT);
     if (fenceEvent)
       CloseHandle(fenceEvent);

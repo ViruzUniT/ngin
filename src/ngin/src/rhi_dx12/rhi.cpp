@@ -70,14 +70,14 @@ Error RHI::ExecuteCommandList() {
 }
 
 Error RHI::Present() {
-  HRESULT hr = swapChain->Present(1, 0);
+  HRESULT hr = swapchain->Present(1, 0);
   if (FAILED(hr)) {
     return Error{Unknown, std::format("Presentation of the SwapChain failed: {}", hr)};
   }
   return Error{};
 }
 Error RHI::BeginFrame() {
-  currentBuffer = swapChain->GetCurrentBackBufferIndex();
+  currentBuffer = swapchain->GetCurrentBackBufferIndex();
 
   HRESULT hr = cmdAlloc->Reset();
   if (FAILED(hr))
@@ -123,7 +123,7 @@ Error RHI::EndFrame() {
 Error RHI::Resize(uint16_t width, uint16_t height) {
   fence->Flush(FRAME_COUNT);
   HRESULT hr =
-    swapChain->ResizeBuffers(FRAME_COUNT, width, height, DXGI_FORMAT_UNKNOWN, SWAPCHAIN_FLAGS);
+    swapchain->ResizeBuffers(FRAME_COUNT, width, height, DXGI_FORMAT_UNKNOWN, SWAPCHAIN_FLAGS);
   if (FAILED(hr)) {
     return Error{Unknown, std::format("SwapChain could not be resized: {}", hr)};
   }
@@ -166,7 +166,7 @@ Error RHI::GetBuffers() {
   desc.Texture2D.PlaneSlice = 0;
 
   for (size_t i = 0; i < FRAME_COUNT; i++) {
-    HRESULT hr = swapChain->GetBuffer(i, IID_PPV_ARGS(&buffers[i]));
+    HRESULT hr = swapchain->GetBuffer(i, IID_PPV_ARGS(&buffers[i]));
     if (FAILED(hr))
       return Error{Unknown, std::format("Getting the following buffer failed: nr.{}, {}", i, hr)};
     device->CreateRenderTargetView(buffers[i].get(), &desc, rtvHandles[i]);
@@ -244,7 +244,7 @@ Error RHI::CreateSwapChain(HWND hwnd, Vec2Rounded windowDimensions) {
       InvalidArgumentIGuess, std::format("Temp. SwapChain could not be created: {}", hr)
     };
 
-  hr = tempSwapChain->QueryInterface(IID_PPV_ARGS(&swapChain));
+  hr = tempSwapChain->QueryInterface(IID_PPV_ARGS(&swapchain));
   if (FAILED(hr))
     return Error{
       Unknown, std::format("Ok how tf did the real swapchain creation failed???: {}", hr)
