@@ -9,7 +9,7 @@ struct Fence : NonCopyable {
   Fence() = delete;
   Fence(ID3D12Device10* device, ID3D12CommandQueue* cmdQueue, Error& err,
     uint32_t timeBeforeTimeoutMS = 20000)
-      : cmdQueue(cmdQueue), timeBeforeTimeoutMS(timeBeforeTimeoutMS) {
+      : timeBeforeTimeoutMS(timeBeforeTimeoutMS), cmdQueue(cmdQueue) {
     if (cmdQueue == nullptr) {
       err = Error{InvalidArgument, "Creating fence Failed. cmdQueue was a nullptr"};
     }

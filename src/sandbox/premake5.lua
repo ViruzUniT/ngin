@@ -23,6 +23,25 @@ links({
 	"Ngin",
 })
 
+filter("toolset:gcc or toolset:clang")
+warnings("Extra")
+buildoptions({
+	"-Wunused-variable",
+	"-Wunused-parameter",
+	"-Wunused-result",
+	"-Wall",
+	"-Wextra",
+	"-Wunused-result",
+})
+
+filter("toolset:msc")
+warnings("Extra")
+buildoptions({
+	"/w34100",
+	"/w34101",
+	"/w34834",
+})
+
 filter("system:windows")
 local shaderProfiles = {
 	vs = "vs_6_0",
@@ -51,7 +70,14 @@ for _, shader in ipairs(os.matchfiles("../ngin/shaders/*.hlsl")) do
 		local entryPoint = profile == "rootsig_1_1" and "-E ROOTSIG " or "-E main "
 		table.insert(
 			shaderCommands,
-			string.format('"%s" -T %s %s-Fo "%s" "../src/ngin/shaders/%s.hlsl"', dxc, profile, entryPoint, output, filename)
+			string.format(
+				'"%s" -T %s %s-Fo "%s" "../src/ngin/shaders/%s.hlsl"',
+				dxc,
+				profile,
+				entryPoint,
+				output,
+				filename
+			)
 		)
 	end
 end

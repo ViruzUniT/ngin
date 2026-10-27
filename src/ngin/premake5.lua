@@ -23,6 +23,25 @@ includedirs({
 	"../../vendor/imgui",
 })
 
+filter("toolset:gcc or toolset:clang")
+warnings("Extra")
+buildoptions({
+	"-Wunused-variable",
+	"-Wunused-parameter",
+	"-Wunused-result",
+	"-Wall",
+	"-Wextra",
+	"-Wunused-result",
+})
+
+filter("toolset:msc")
+warnings("Extra")
+buildoptions({
+	"/w34100",
+	"/w34101",
+	"/w34834",
+})
+
 filter("system:windows")
 links({
 	"user32",

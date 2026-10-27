@@ -19,7 +19,7 @@ struct Window {
   Scope<RHI> rhi;
 
   Window(uint16_t width, uint16_t height, std::string_view name, std::string_view className)
-      : dimensions(width, height), name(name), className(className) {}
+      : name(name), className(className), dimensions(width, height) {}
   Window() = default;
   ~Window() { logTrace("Desturcting window"); }
 };

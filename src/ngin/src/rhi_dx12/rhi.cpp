@@ -46,8 +46,10 @@ RHI::RHI(HWND hwnd, Vec2Rounded windowDimensions, bool& fullscreen, Error& err)
 
   logTrace("Creating Factory");
   hr = CreateDXGIFactory2(0, IID_PPV_ARGS(&factory));
-  if (FAILED(hr))
+  if (FAILED(hr)) {
+    err = Error{Unknown, std::format("Creating the factory failed: {}", hr)};
     return;
+  }
 
   logTrace("Creating Swap chain");
   err = CreateSwapChain(hwnd, windowDimensions);
@@ -337,6 +339,7 @@ Error RHI::CreateUploadAndVertexBuffer() {
     .MultisampleEnable = false,
     .AntialiasedLineEnable = false,
     .ForcedSampleCount = 0,
+    .ConservativeRaster = D3D12_CONSERVATIVE_RASTERIZATION_MODE_OFF,
   };
   gfxPsod.StreamOutput = {
     .pSODeclaration = nullptr,
@@ -371,11 +374,13 @@ Error RHI::CreateUploadAndVertexBuffer() {
     .StencilWriteMask = 0,
     .FrontFace =
       {
+        .StencilFailOp = D3D12_STENCIL_OP_ZERO,
         .StencilDepthFailOp = D3D12_STENCIL_OP_KEEP,
         .StencilPassOp = D3D12_STENCIL_OP_KEEP,
         .StencilFunc = D3D12_COMPARISON_FUNC_ALWAYS,
       },
     .BackFace = {
+      .StencilFailOp = D3D12_STENCIL_OP_ZERO,
       .StencilDepthFailOp = D3D12_STENCIL_OP_KEEP,
       .StencilPassOp = D3D12_STENCIL_OP_KEEP,
       .StencilFunc = D3D12_COMPARISON_FUNC_ALWAYS,
