@@ -144,7 +144,7 @@ Error RHI::Update() {
   return err;
 }
 
-void RHI::DoRS(Vec2Rounded windowDimensions) {
+void RHI::ConfigureRasterizer(Vec2Rounded windowDimensions) {
   D3D12_VIEWPORT vp;
   vp.TopLeftX = vp.TopLeftY = 0;
   vp.Width = windowDimensions.x;
@@ -160,6 +160,13 @@ void RHI::DoRS(Vec2Rounded windowDimensions) {
   cmdList->RSSetScissorRects(1, &scRect);
 }
 
+void RHI::Draw(Vec2Rounded windowDimensions) {
+  SetPipelineState();
+  ConfigureInputAssembler();
+  ConfigureRasterizer(windowDimensions);
+  ConfigureOutputMerger();
+  cmdList->DrawInstanced(_countof(verticies), 1, 0, 0);
+}
 Error RHI::GetBuffers() {
   D3D12_RENDER_TARGET_VIEW_DESC desc{};
   desc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;

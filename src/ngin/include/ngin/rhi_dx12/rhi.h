@@ -26,22 +26,22 @@ class RHI : public NonCopyableNonMovable {
   Error EndFrame();
   Error Resize(uint16_t width, uint16_t height);
 
-  inline void DoPSO() {
+  inline void SetPipelineState() {
     cmdList->SetPipelineState(pipelineState);
     cmdList->SetGraphicsRootSignature(rootSignature);
   }
-  inline void DoIA() {
+  inline void ConfigureInputAssembler() {
     cmdList->IASetVertexBuffers(0, 1, &vbv);
     cmdList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
   }
-  void DoRS(Vec2Rounded windowDimensions);
+  void ConfigureRasterizer(Vec2Rounded windowDimensions);
   // currently not working cuz of blend settings
-  inline void DoOM() {
+  inline void ConfigureOutputMerger() {
     f32 bf[] = {0.1f, 0.1f, 0.1f, 0.1f};
     cmdList->OMSetBlendFactor(bf);
   }
 
-  inline void Draw() { cmdList->DrawInstanced(_countof(verticies), 1, 0, 0); }
+  void Draw(Vec2Rounded windowDimensions);
 
   Error GetBuffers();
 

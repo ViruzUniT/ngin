@@ -54,24 +54,26 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam) 
 namespace Ngin {
 namespace Window {
 Error Create(Window& window) {
-  WNDCLASSEXW wc{};
   HINSTANCE instance = GetModuleHandle(nullptr);
   std::wstring className(window.className.begin(), window.className.end());
   std::wstring windowName(window.name.begin(), window.name.end());
 
   logTrace("Setting wndClass desc");
-  wc.cbSize = sizeof(wc);
-  wc.style = CS_OWNDC;
-  wc.lpfnWndProc = WndProc;
-  wc.cbClsExtra = 0;
-  wc.cbWndExtra = 0;
-  wc.hInstance = instance;
-  wc.hIcon = LoadIcon(nullptr, IDI_APPLICATION);
-  wc.hCursor = LoadCursor(0, IDC_ARROW);
-  wc.hbrBackground = nullptr;
-  wc.lpszMenuName = nullptr;
-  wc.lpszClassName = className.c_str();
-  wc.hIcon = LoadIcon(nullptr, IDI_APPLICATION);
+  WNDCLASSEXW wc{
+    .cbSize = sizeof(wc),
+    .style = CS_OWNDC,
+    .lpfnWndProc = WndProc,
+    .cbClsExtra = 0,
+    .cbWndExtra = 0,
+    .hInstance = instance,
+    .hIcon = LoadIcon(nullptr, IDI_APPLICATION),
+    .hCursor = LoadCursor(0, IDC_ARROW),
+    .hbrBackground = nullptr,
+    .lpszMenuName = nullptr,
+    .lpszClassName = className.c_str(),
+    .hIcon = LoadIcon(nullptr, IDI_APPLICATION),
+    .hIconSm = LoadIcon(nullptr, IDI_APPLICATION)
+  };
 
   logTrace("Registering class");
   window.w_class = RegisterClassExW(&wc);
@@ -153,12 +155,7 @@ Error Update(Window& window) {
   if (err)
     return err;
 
-  window.rhi->DoPSO();
-  window.rhi->DoIA();
-  window.rhi->DoRS(window.dimensions);
-  window.rhi->DoOM();
-
-  window.rhi->Draw();
+  window.rhi->Draw(window.dimensions);
 
   err = window.rhi->EndFrame();
   if (err)
