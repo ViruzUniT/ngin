@@ -15,8 +15,10 @@ class RHI : public NonCopyableNonMovable {
   ~RHI() {
     logTrace("Destructing RHI");
     fence.reset();
+    ReleaseBuffers();
   }
-  static Error Create(HWND hwnd, Vec2Rounded windowDimensions, bool& fullscreen, Scope<RHI>& rhi);
+  static Error Create(const HWND hwnd, const Vec2Rounded windowDimensions, bool& fullscreen,
+    Scope<RHI>& rhi);
 
  public:
   Error Update();
@@ -52,7 +54,7 @@ class RHI : public NonCopyableNonMovable {
   }
 
  private:
-  RHI(HWND hwnd, Vec2Rounded windowDimensions, bool& fullscreen, Error& err);
+  RHI(const HWND hwnd, const Vec2Rounded windowDimensions, bool& fullscreen, Error& err);
 
  private:
   static constexpr uint32_t SWAPCHAIN_FLAGS =

@@ -4,25 +4,14 @@
 #include <ngin/platform/window.h>
 
 #include <format>
-#include <unordered_map>
-
-std::unordered_map<HWND, Ngin::Window::Window*> windows;
-std::vector<HWND> windowsToClose;
-
-Ngin::Window::Window* GetWindow(HWND hwnd) {
-  if (windows.contains(hwnd)) {
-    return windows.at(hwnd);
-  }
-  return nullptr;
-}
 
 LRESULT CALLBACK WndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam) {
-  Ngin::Window::Window* window = GetWindow(hwnd);
+  Ngin::Window* window = Ngin::Window::GetWindow(hwnd);
   switch (message) {
     case WM_KEYDOWN:
       if (wParam == VK_F11) {
         Ngin::logDebug(std::format("Setting window fullscreen: {}", !window->fullscreen));
-        Ngin::Window::SetFullscreen(*window, !window->fullscreen);
+        window->SetFullscreen(!window->fullscreen);
       }
       return 0;
     case WM_CREATE:
@@ -33,13 +22,13 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam) 
           (HIWORD(lParam) != window->dimensions.y || LOWORD(lParam) != window->dimensions.x) &&
           window != nullptr) {
         Ngin::logTrace("Resizing window");
-        Ngin::Error err = Resize(*window);
+        Ngin::Error err = window->Resize();
         if (err.code != Ngin::ErrorCode::None)
           Ngin::logError(err.message);
       }
       return 0;
     case WM_CLOSE:
-      windowsToClose.push_back(hwnd);
+      Ngin::Window::windowsToClose.push_back(hwnd);
       return 0;
 
     case WM_DESTROY:
@@ -52,11 +41,11 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam) 
 }
 
 namespace Ngin {
-namespace Window {
-Error Create(Window& window) {
+Window::Window(uint16_t width, uint16_t height, std::string_view name, std::string_view className)
+    : name(name), className(className), dimensions(width, height) {
   HINSTANCE instance = GetModuleHandle(nullptr);
-  std::wstring className(window.className.begin(), window.className.end());
-  std::wstring windowName(window.name.begin(), window.name.end());
+  std::wstring classNameW(className.begin(), className.end());
+  std::wstring windowName(name.begin(), name.end());
 
   logTrace("Setting wndClass desc");
   WNDCLASSEXW wc{
@@ -70,59 +59,62 @@ Error Create(Window& window) {
     .hCursor = LoadCursor(0, IDC_ARROW),
     .hbrBackground = nullptr,
     .lpszMenuName = nullptr,
-    .lpszClassName = className.c_str(),
-    .hIcon = LoadIcon(nullptr, IDI_APPLICATION),
+    .lpszClassName = classNameW.c_str(),
     .hIconSm = LoadIcon(nullptr, IDI_APPLICATION)
   };
 
   logTrace("Registering class");
-  window.w_class = RegisterClassExW(&wc);
-  if (!window.w_class) {
+  w_class = RegisterClassExW(&wc);
+  if (!w_class) {
     Ngin::logError(
       std::format("Creating window failed. Couldnt RegisterClass Error code {}", GetLastError()));
-    return Error{
-      PlatformError,
-      std::format("Creating window failed. Couldnt RegisterClass Error code {}", GetLastError())
-    };
+    logFatal(
+      std::format("Creating window failed. Couldnt RegisterClass Error code {}", GetLastError()));
+    std::exit(1);
+    return;
   }
 
   logTrace("Creating windowex");
-  window.hwnd = CreateWindowExW(WS_EX_OVERLAPPEDWINDOW | WS_EX_APPWINDOW, className.c_str(),
-    windowName.c_str(), WS_OVERLAPPEDWINDOW, CW_USEDEFAULT, CW_USEDEFAULT, window.dimensions.x,
-    window.dimensions.y, nullptr, nullptr, instance, nullptr);
+  hwnd = CreateWindowExW(WS_EX_OVERLAPPEDWINDOW | WS_EX_APPWINDOW, classNameW.c_str(),
+    windowName.c_str(), WS_OVERLAPPEDWINDOW, CW_USEDEFAULT, CW_USEDEFAULT, dimensions.x,
+    dimensions.y, nullptr, nullptr, instance, nullptr);
 
-  if (window.hwnd == nullptr) {
-    Ngin::logError(std::format("Creating Window failed: Couldnt CreateWindowEx Error code {}",
+  if (hwnd == nullptr) {
+    logFatal(std::format("Creating Window failed: Couldnt CreateWindowEx Error code {}",
       GetLastError()));
-    return Error{
-      PlatformError,
-      std::format("Creating Window failed: Couldnt CreateWindowEx Error code {}", GetLastError())
-    };
+    std::exit(1);
+    return;
   }
 
   logTrace("Creating RHI");
-  Error err = RHI::Create(window.hwnd, window.dimensions, window.fullscreen, window.rhi);
+  Error err = RHI::Create(hwnd, dimensions, fullscreen, rhi);
 
   if (err) {
-    Ngin::logError("RHI could not be created");
+    Ngin::logError(std::format("RHI could not be created: {}", static_cast<int>(err.code)));
     Ngin::logError(err.message);
-    return err;
+    std::exit(1);
+    return;
   }
 
-  windows.insert_or_assign(window.hwnd, &window);
+  windows.insert_or_assign(hwnd, this);
+};
 
-  return Error{};
-}
-
-Error SetShow(Window& props, CmdShow showType) {
-  if (props.hwnd == 0) {
+Error Window::SetShow(CmdShow showType) {
+  if (hwnd == 0) {
     return Error{PlatformError, "Window Handle is NULL"};
   }
-  ShowWindow(props.hwnd, showType);
+  ShowWindow(hwnd, showType);
   return Error{};
 }
 
-void CheckForClosableWindows() {
+Window* Window::GetWindow(HWND hwnd) {
+  if (windows.contains(hwnd)) {
+    return windows.at(hwnd);
+  }
+  return nullptr;
+}
+
+void Window::CheckForClosableWindows() {
   if (windowsToClose.size() <= 0) {
     return;
   }
@@ -133,8 +125,8 @@ void CheckForClosableWindows() {
   }
 }
 
-Error Update(Window& window) {
-  if (window.hwnd == 0) {
+Error Window::Update() {
+  if (hwnd == 0) {
     return Error{PlatformError, "Window handle is NULL"};
   }
 
@@ -144,23 +136,23 @@ Error Update(Window& window) {
 
   while (PeekMessage(&msg, nullptr, 0, 0, PM_REMOVE)) {
     if (msg.message == WM_QUIT) {
-      Close(window);
-      window.hwnd = 0;
+      Close();
+      hwnd = 0;
       return Error{Exit, "Window was closed"};
     }
     TranslateMessage(&msg);
     DispatchMessage(&msg);
   }
-  Error err = window.rhi->BeginFrame();
+  Error err = rhi->BeginFrame();
   if (err)
     return err;
 
-  window.rhi->Draw(window.dimensions);
+  rhi->Draw(dimensions);
 
-  err = window.rhi->EndFrame();
+  err = rhi->EndFrame();
   if (err)
     return err;
-  err = window.rhi->Update();
+  err = rhi->Update();
   if (err)
     return err;
   return Error{};
@@ -193,46 +185,57 @@ Error Resize(Window& window, bool autoResize, std::optional<Vec2Rounded> newDime
   return window.rhi->GetBuffers();
 }
 
-Error SetFullscreen(Window& window, bool enable) {
-  window.fullscreen = enable;
+Error Window::SetFullscreen(bool enable) {
+  fullscreen = enable;
 
   DWORD style = WS_OVERLAPPEDWINDOW | WS_VISIBLE;
   DWORD exStyle = WS_EX_OVERLAPPEDWINDOW | WS_EX_APPWINDOW;
 
-  if (window.fullscreen) {
+  if (fullscreen) {
     style = WS_POPUP | WS_VISIBLE;
     exStyle = WS_EX_APPWINDOW;
   }
-  SetWindowLongW(window.hwnd, GWL_STYLE, style);
-  SetWindowLongW(window.hwnd, GWL_EXSTYLE, exStyle);
-  if (window.fullscreen) {
-    HMONITOR monitor = MonitorFromWindow(window.hwnd, MONITOR_DEFAULTTONEAREST);
+  SetWindowLongW(hwnd, GWL_STYLE, style);
+  SetWindowLongW(hwnd, GWL_EXSTYLE, exStyle);
+  if (fullscreen) {
+    HMONITOR monitor = MonitorFromWindow(hwnd, MONITOR_DEFAULTTONEAREST);
     MONITORINFO monitorInfo{};
     monitorInfo.cbSize = sizeof(monitorInfo);
     if (GetMonitorInfo(monitor, &monitorInfo)) {
-      SetWindowPos(window.hwnd, nullptr, monitorInfo.rcMonitor.left, monitorInfo.rcMonitor.top,
+      SetWindowPos(hwnd, nullptr, monitorInfo.rcMonitor.left, monitorInfo.rcMonitor.top,
         monitorInfo.rcMonitor.right - monitorInfo.rcMonitor.left,
         monitorInfo.rcMonitor.bottom - monitorInfo.rcMonitor.top, SWP_NOZORDER);
-      Resize(window);
+      Resize();
     }
   } else {
-    SetShow(window, ShowMaximized);
+    SetShow(ShowMaximized);
   }
   return Error{};
 }
 
-Error Close(Window& window) {
+Error Window::Close() {
+  if (hwnd) {
+    DestroyWindow(hwnd);
+    windows.erase(hwnd);
+    hwnd = nullptr;
+  }
+  if (w_class) {
+    std::wstring classNameW(className.begin(), className.end());
+    UnregisterClassW(classNameW.c_str(), GetModuleHandle(nullptr));
+  }
+  return Error{};
+}
+Error Window::Close(Window& window) {
   if (window.hwnd) {
     DestroyWindow(window.hwnd);
     windows.erase(window.hwnd);
     window.hwnd = nullptr;
   }
   if (window.w_class) {
-    std::wstring className(window.className.begin(), window.className.end());
-    UnregisterClassW(className.c_str(), GetModuleHandle(nullptr));
+    std::wstring classNameW(window.className.begin(), window.className.end());
+    UnregisterClassW(classNameW.c_str(), GetModuleHandle(nullptr));
   }
   return Error{};
 }
 
-}  // namespace Window
 }  // namespace Ngin

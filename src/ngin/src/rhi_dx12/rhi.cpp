@@ -1,7 +1,8 @@
 #include <ngin/rhi_dx12/rhi.h>
 
 namespace Ngin {
-Error RHI::Create(HWND hwnd, Vec2Rounded windowDimensions, bool& fullscreen, Scope<RHI>& rhi) {
+Error RHI::Create(const HWND hwnd, const Vec2Rounded windowDimensions, bool& fullscreen,
+  Scope<RHI>& rhi) {
   Error err;
   RHI* tempRhi = new RHI(hwnd, windowDimensions, fullscreen, err);
   if (err) {
@@ -12,7 +13,7 @@ Error RHI::Create(HWND hwnd, Vec2Rounded windowDimensions, bool& fullscreen, Sco
   return Error{};
 }
 
-RHI::RHI(HWND hwnd, Vec2Rounded windowDimensions, bool& fullscreen, Error& err)
+RHI::RHI(const HWND hwnd, const Vec2Rounded windowDimensions, bool& fullscreen, Error& err)
     : fullscreen(fullscreen) {
   logTrace("Creating Device");
   HRESULT hr = D3D12CreateDevice(nullptr, D3D_FEATURE_LEVEL_12_1, IID_PPV_ARGS(&device));
@@ -122,7 +123,7 @@ Error RHI::EndFrame() {
   return Error{};
 }
 
-Error RHI::Resize(uint16_t width, uint16_t height) {
+Error RHI::Resize(const uint16_t width, const uint16_t height) {
   fence->Flush(FRAME_COUNT);
   HRESULT hr =
     swapchain->ResizeBuffers(FRAME_COUNT, width, height, DXGI_FORMAT_UNKNOWN, SWAPCHAIN_FLAGS);
@@ -144,7 +145,7 @@ Error RHI::Update() {
   return err;
 }
 
-void RHI::ConfigureRasterizer(Vec2Rounded windowDimensions) {
+void RHI::ConfigureRasterizer(const Vec2Rounded windowDimensions) {
   D3D12_VIEWPORT vp;
   vp.TopLeftX = vp.TopLeftY = 0;
   vp.Width = windowDimensions.x;
@@ -160,7 +161,7 @@ void RHI::ConfigureRasterizer(Vec2Rounded windowDimensions) {
   cmdList->RSSetScissorRects(1, &scRect);
 }
 
-void RHI::Draw(Vec2Rounded windowDimensions) {
+void RHI::Draw(const Vec2Rounded windowDimensions) {
   SetPipelineState();
   ConfigureInputAssembler();
   ConfigureRasterizer(windowDimensions);
@@ -227,7 +228,7 @@ Error RHI::CreateCommandList() {
   return Error{};
 }
 
-Error RHI::CreateSwapChain(HWND hwnd, Vec2Rounded windowDimensions) {
+Error RHI::CreateSwapChain(const HWND hwnd, const Vec2Rounded windowDimensions) {
   DXGI_SWAP_CHAIN_DESC1 desc = {};
   desc.Width = windowDimensions.x;
   desc.Height = windowDimensions.y;
