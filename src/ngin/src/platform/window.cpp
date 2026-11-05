@@ -5,6 +5,9 @@
 
 #include <format>
 
+std::unordered_map<HWND, Ngin::Window*> Ngin::Window::windows;
+std::vector<HWND> Ngin::Window::windowsToClose;
+
 LRESULT CALLBACK WndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam) {
   Ngin::Window* window = Ngin::Window::GetWindow(hwnd);
   switch (message) {
@@ -158,31 +161,31 @@ Error Window::Update() {
   return Error{};
 }
 
-Error Resize(Window& window, bool autoResize, std::optional<Vec2Rounded> newDimensions) {
+Error Window::Resize(bool autoResize, std::optional<Vec2Rounded> newDimensions) {
   if (autoResize) {
     RECT cr;
-    if (GetClientRect(window.hwnd, &cr)) {
-      window.dimensions.x = cr.right - cr.left;
-      window.dimensions.y = cr.bottom - cr.top;
+    if (GetClientRect(hwnd, &cr)) {
+      dimensions.x = cr.right - cr.left;
+      dimensions.y = cr.bottom - cr.top;
     } else {
       return Error{PlatformError, "Couldnt get Client Rect for Resizing"};
     }
   } else {
     if (newDimensions)
-      window.dimensions = newDimensions.value();
+      dimensions = newDimensions.value();
     else
       return Error{
         PlatformError, "No newDimensions were passed even though autoResize was false"
       };
   }
 
-  window.rhi->ReleaseBuffers();
+  rhi->ReleaseBuffers();
 
-  Error err = window.rhi->Resize(window.dimensions.x, window.dimensions.y);
+  Error err = rhi->Resize(dimensions.x, dimensions.y);
   if (err)
     return err;
 
-  return window.rhi->GetBuffers();
+  return rhi->GetBuffers();
 }
 
 Error Window::SetFullscreen(bool enable) {
