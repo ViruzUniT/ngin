@@ -73,3 +73,5 @@ bin/
 bin-int/
 .tools/
 .luarc.json
+
+vendor/*

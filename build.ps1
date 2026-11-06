@@ -79,6 +79,7 @@ if($operation -eq "gen") {
   if ($LASTEXITCODE -ne 0) {
     exit $LASTEXITCODE
   }
+  git submodule update --init --recursive
 }
 elseif($operation -eq "compdb") {
   if(-not (Get-Command make -ErrorAction SilentlyContinue)) {
