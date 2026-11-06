@@ -8,9 +8,13 @@
 std::unordered_map<HWND, Ngin::Window*> Ngin::Window::windows;
 std::vector<HWND> Ngin::Window::windowsToClose;
 
-LRESULT CALLBACK WndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam) {
+LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
+  extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg, WPARAM wParam,
+    LPARAM lParam);
+  if (ImGui_ImplWin32_WndProcHandler(hwnd, msg, wParam, lParam))
+    return true;
   Ngin::Window* window = Ngin::Window::GetWindow(hwnd);
-  switch (message) {
+  switch (msg) {
     case WM_KEYDOWN:
       if (wParam == VK_F11) {
         Ngin::logDebug(std::format("Setting window fullscreen: {}", !window->fullscreen));
@@ -39,7 +43,7 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam) 
       return 0;
 
     default:
-      return DefWindowProc(hwnd, message, wParam, lParam);
+      return DefWindowProc(hwnd, msg, wParam, lParam);
   }
 }
 
@@ -99,6 +103,42 @@ Window::Window(uint16_t width, uint16_t height, std::string_view name, std::stri
     return;
   }
 
+  IMGUI_CHECKVERSION();
+  ImGui::CreateContext();
+  ImGuiIO& io = ImGui::GetIO();
+  io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
+  io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;
+
+  ImGui_ImplDX12_InitInfo initInfo = {};
+  initInfo.Device = rhi->getDevice();
+  initInfo.CommandQueue = rhi->getCmdQueue();
+  initInfo.NumFramesInFlight = FRAME_COUNT;
+  initInfo.RTVFormat = rhi->COLOR_FORMAT;
+  initInfo.SrvDescriptorHeap = rhi->getRtvHeap();
+  initInfo.UserData = rhi->getSrvHeap();
+  initInfo.SrvDescriptorAllocFn = [](ImGui_ImplDX12_InitInfo* info,
+                                    D3D12_CPU_DESCRIPTOR_HANDLE* out_cpu_handle,
+                                    D3D12_GPU_DESCRIPTOR_HANDLE* out_gpu_handle) {
+    static_cast<ExampleDescriptorHeapAllocator*>(info->UserData)
+      ->Alloc(out_cpu_handle, out_gpu_handle);
+  };
+  initInfo.SrvDescriptorFreeFn = [](ImGui_ImplDX12_InitInfo* info,
+                                   D3D12_CPU_DESCRIPTOR_HANDLE cpu_handle,
+                                   D3D12_GPU_DESCRIPTOR_HANDLE gpu_handle) {
+    static_cast<ExampleDescriptorHeapAllocator*>(info->UserData)->Free(cpu_handle, gpu_handle);
+  };
+
+  if (!ImGui_ImplDX12_Init(&initInfo)) {
+    Ngin::logFatal("Imgui init failed");
+    std::exit(1);
+    return;
+  }
+
+  if (!ImGui_ImplWin32_Init(hwnd)) {
+    Ngin::logFatal("Imgui init failed");
+    std::exit(1);
+    return;
+  }
   windows.insert_or_assign(hwnd, this);
 };
 
@@ -147,10 +187,17 @@ Error Window::Update() {
     DispatchMessage(&msg);
   }
   Error err = rhi->BeginFrame();
+  ImGui_ImplDX12_NewFrame();
+  ImGui_ImplWin32_NewFrame();
+  ImGui::NewFrame();
+  ImGui::ShowDemoWindow();
+
   if (err)
     return err;
 
   rhi->Draw(dimensions);
+  ImGui::Render();
+  ImGui_ImplDX12_RenderDrawData(ImGui::GetDrawData(), rhi->getCmdList());
 
   err = rhi->EndFrame();
   if (err)

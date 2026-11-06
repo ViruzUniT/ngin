@@ -15,6 +15,7 @@ files({
 })
 
 includedirs({
+	"../../vendor/imgui",
 	"../ngin/include",
 	".",
 })
@@ -87,6 +88,7 @@ prebuildcommands(shaderCommands)
 links({
 	"user32",
 	"gdi32",
+	"dwmapi",
 	"d3d12",
 	"dxgi",
 	"dxguid",

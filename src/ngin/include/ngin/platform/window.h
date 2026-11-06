@@ -27,6 +27,9 @@ struct Window {
   ~Window() {
     logTrace("Desturcting window");
     Close();
+    ImGui_ImplDX12_Shutdown();
+    ImGui_ImplWin32_Shutdown();
+    ImGui::DestroyContext();
   }
   Error SetShow(CmdShow showType);
   Error Update();

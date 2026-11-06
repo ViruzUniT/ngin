@@ -64,7 +64,12 @@ RHI::RHI(const HWND hwnd, const Vec2Rounded windowDimensions, bool& fullscreen, 
 
   logTrace("Creating Upload and Vertex Buffers");
   err = CreateUploadAndVertexBuffer();
+  if (err)
+    return;
   // Mby need to add wait for buffers but i think i did that
+
+  logTrace("Creating srv heap");
+  CreateSrvHeap();
 }
 Error RHI::ExecuteCommandList() {
   ID3D12CommandList* list[] = {cmdList.get()};
