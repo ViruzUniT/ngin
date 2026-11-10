@@ -8,9 +8,10 @@
 std::unordered_map<HWND, Ngin::Window*> Ngin::Window::windows;
 std::vector<HWND> Ngin::Window::windowsToClose;
 
+extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg, WPARAM wParam,
+  LPARAM lParam);
+
 LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
-  extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg, WPARAM wParam,
-    LPARAM lParam);
   if (ImGui_ImplWin32_WndProcHandler(hwnd, msg, wParam, lParam))
     return true;
   Ngin::Window* window = Ngin::Window::GetWindow(hwnd);
@@ -25,9 +26,8 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
       Ngin::logTrace("Window created :)");
       return 0;
     case WM_SIZE:
-      if (lParam &&
-          (HIWORD(lParam) != window->dimensions.y || LOWORD(lParam) != window->dimensions.x) &&
-          window != nullptr) {
+      if (lParam && window != nullptr &&
+          (HIWORD(lParam) != window->dimensions.y || LOWORD(lParam) != window->dimensions.x)) {
         Ngin::logTrace("Resizing window");
         Ngin::Error err = window->Resize();
         if (err.code != Ngin::ErrorCode::None)
@@ -103,6 +103,7 @@ Window::Window(uint16_t width, uint16_t height, std::string_view name, std::stri
     return;
   }
 
+  logTrace("Creating imgui");
   IMGUI_CHECKVERSION();
   ImGui::CreateContext();
   ImGuiIO& io = ImGui::GetIO();
@@ -114,7 +115,7 @@ Window::Window(uint16_t width, uint16_t height, std::string_view name, std::stri
   initInfo.CommandQueue = rhi->getCmdQueue();
   initInfo.NumFramesInFlight = FRAME_COUNT;
   initInfo.RTVFormat = rhi->COLOR_FORMAT;
-  initInfo.SrvDescriptorHeap = rhi->getRtvHeap();
+  initInfo.SrvDescriptorHeap = rhi->getSrvDescriptorHeap();
   initInfo.UserData = rhi->getSrvHeap();
   initInfo.SrvDescriptorAllocFn = [](ImGui_ImplDX12_InitInfo* info,
                                     D3D12_CPU_DESCRIPTOR_HANDLE* out_cpu_handle,
@@ -172,6 +173,7 @@ Error Window::Update() {
   if (hwnd == 0) {
     return Error{PlatformError, "Window handle is NULL"};
   }
+  static bool showDemoWindow = true;
 
   CheckForClosableWindows();
 
@@ -186,22 +188,48 @@ Error Window::Update() {
     TranslateMessage(&msg);
     DispatchMessage(&msg);
   }
-  Error err = rhi->BeginFrame();
-  ImGui_ImplDX12_NewFrame();
-  ImGui_ImplWin32_NewFrame();
-  ImGui::NewFrame();
-  ImGui::ShowDemoWindow();
+  // TODO
+  // Handle window screen locked
 
+  Error err = rhi->BeginFrame();
   if (err)
     return err;
 
+  ImGui_ImplDX12_NewFrame();
+  ImGui_ImplWin32_NewFrame();
+  ImGui::NewFrame();
+
+  if (showDemoWindow)
+    ImGui::ShowDemoWindow();
+  {
+    static float f = 0.0f;
+    static int counter = 0;
+
+    ImGui::Begin("Fuck yeah");
+
+    ImGui::Text("Text ig");
+    ImGui::Checkbox("Demo Window", &showDemoWindow);
+    ImGui::SliderFloat("floaty boi", &f, 0.f, 100.1f);
+
+    if (ImGui::Button("Count my ass"))
+      counter++;
+    ImGui::SameLine();
+    ImGui::Text("counter: = %d", counter);
+
+    ImGui::End();
+  }
+
   rhi->Draw(dimensions);
+
   ImGui::Render();
+  ID3D12DescriptorHeap* descriptorHeaps[] = {rhi->getSrvDescriptorHeap()};
+  rhi->getCmdList()->SetDescriptorHeaps(_countof(descriptorHeaps), descriptorHeaps);
   ImGui_ImplDX12_RenderDrawData(ImGui::GetDrawData(), rhi->getCmdList());
 
   err = rhi->EndFrame();
   if (err)
     return err;
+
   err = rhi->Update();
   if (err)
     return err;

@@ -69,7 +69,7 @@ RHI::RHI(const HWND hwnd, const Vec2Rounded windowDimensions, bool& fullscreen, 
   // Mby need to add wait for buffers but i think i did that
 
   logTrace("Creating srv heap");
-  CreateSrvHeap();
+  err = CreateSrvHeap();
 }
 Error RHI::ExecuteCommandList() {
   ID3D12CommandList* list[] = {cmdList.get()};
@@ -484,4 +484,20 @@ Error RHI::CreateUploadAndVertexBuffer() {
 
   return Error{};
 }
+Error RHI::CreateSrvHeap() {
+  D3D12_DESCRIPTOR_HEAP_DESC desc{};
+  desc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
+  desc.NumDescriptors = 64;
+  desc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
+  desc.NodeMask = 0;
+
+  HRESULT hr = device->CreateDescriptorHeap(&desc, IID_PPV_ARGS(&srvDescriptorHeap));
+  if (FAILED(hr))
+    return Error{InvalidArgument, std::format("Creating the SRV heap failed: {}", hr)};
+
+  srvHeap = std::make_unique<ExampleDescriptorHeapAllocator>();
+  srvHeap->Create(device.get(), srvDescriptorHeap.get());
+  return Error{};
+}
+
 };  // namespace Ngin

@@ -60,6 +60,7 @@ class RHI : public NonCopyableNonMovable {
   inline ID3D12Device10* getDevice() const { return device.get(); }
   inline ID3D12CommandQueue* getCmdQueue() const { return cmdQueue.get(); }
   inline ID3D12DescriptorHeap* getRtvHeap() const { return rtvHeap.get(); }
+  inline ID3D12DescriptorHeap* getSrvDescriptorHeap() const { return srvDescriptorHeap.get(); }
   inline ID3D12GraphicsCommandList7* getCmdList() const { return cmdList.get(); }
   inline ExampleDescriptorHeapAllocator* getSrvHeap() const { return srvHeap.get(); }
   static constexpr DXGI_FORMAT COLOR_FORMAT = DXGI_FORMAT_R8G8B8A8_UNORM;
@@ -86,6 +87,7 @@ class RHI : public NonCopyableNonMovable {
   ComScope<IDXGIFactory7> factory;
   ComScope<IDXGISwapChain4> swapchain;
   ComScope<ID3D12DescriptorHeap> rtvHeap;
+  ComScope<ID3D12DescriptorHeap> srvDescriptorHeap;
   Array<D3D12_CPU_DESCRIPTOR_HANDLE, FRAME_COUNT> rtvHandles;
   ComScope<ID3D12Resource2> uploadBuffer, vertexBuffer;
   ComScope<ID3D12RootSignature> rootSignature;
@@ -105,9 +107,6 @@ class RHI : public NonCopyableNonMovable {
   Error CreateSwapChain(HWND hwnd, Vec2Rounded windowDimensions);
   Error CreateRtvHeap();
   Error CreateUploadAndVertexBuffer();
-  inline void CreateSrvHeap() {
-    srvHeap = std::make_unique<ExampleDescriptorHeapAllocator>();
-    srvHeap->Create(device.get(), rtvHeap.get());
-  }
+  Error CreateSrvHeap();
 };
 }  // namespace Ngin
