@@ -109,6 +109,7 @@ Window::Window(uint16_t width, uint16_t height, std::string_view name, std::stri
   ImGuiIO& io = ImGui::GetIO();
   io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
   io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;
+  io.ConfigFlags |= ImGuiConfigFlags_ViewportsEnable;
 
   ImGui_ImplDX12_InitInfo initInfo = {};
   initInfo.Device = rhi->getDevice();
@@ -225,6 +226,8 @@ Error Window::Update() {
   ID3D12DescriptorHeap* descriptorHeaps[] = {rhi->getSrvDescriptorHeap()};
   rhi->getCmdList()->SetDescriptorHeaps(_countof(descriptorHeaps), descriptorHeaps);
   ImGui_ImplDX12_RenderDrawData(ImGui::GetDrawData(), rhi->getCmdList());
+  ImGui::UpdatePlatformWindows();
+  ImGui::RenderPlatformWindowsDefault();
 
   err = rhi->EndFrame();
   if (err)
