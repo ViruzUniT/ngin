@@ -1,7 +1,5 @@
 #pragma once
 
-#include <backends/imgui_impl_dx12.h>
-#include <backends/imgui_impl_win32.h>
 #include <imgui.h>
 #include <ngin/core/base.h>
 
@@ -16,6 +14,8 @@
 static constexpr uint8_t FRAME_COUNT = 2;
 
 #if defined(NGIN_PLATFORM_WINDOWS)
+#include <backends/imgui_impl_dx12.h>
+#include <backends/imgui_impl_win32.h>
 #include <ngin/platform/windows.h>
 #include <windows.h>
 
