@@ -1,5 +1,6 @@
 #pragma once
 #include <ngin/pch.h>
+#include <ngin/renderer/imgui.h>
 #include <ngin/rhi_dx12/rhi.h>
 #include <stdint.h>
 
@@ -15,8 +16,9 @@ struct Window {
   ATOM w_class = 0;
   bool fullscreen = false;
   RECT windowPos;
+  Scope<DearImGui> imgui;
 
-  Scope<RHI> rhi;
+  Ref<RHI> rhi;
 
   enum CmdShow { Hide = 0, ShowNormal = 1, ShowMaximized = 3, Show = 5 };
 
@@ -25,11 +27,9 @@ struct Window {
 
   Window(uint16_t width, uint16_t height, std::string_view name, std::string_view className);
   ~Window() {
+    imgui.reset();
     logTrace("Desturcting window");
     Close();
-    ImGui_ImplDX12_Shutdown();
-    ImGui_ImplWin32_Shutdown();
-    ImGui::DestroyContext();
   }
   Error SetShow(CmdShow showType);
   Error Update();

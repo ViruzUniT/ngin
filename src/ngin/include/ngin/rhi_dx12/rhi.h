@@ -20,7 +20,7 @@ class RHI : public NonCopyableNonMovable {
     ReleaseBuffers();
   }
   static Error Create(const HWND hwnd, const Vec2Rounded windowDimensions, bool& fullscreen,
-    Scope<RHI>& rhi);
+    Ref<RHI>& rhi);
 
  public:
   Error Update();

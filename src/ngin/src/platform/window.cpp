@@ -104,43 +104,7 @@ Window::Window(uint16_t width, uint16_t height, std::string_view name, std::stri
   }
 
   logTrace("Creating imgui");
-  IMGUI_CHECKVERSION();
-  ImGui::CreateContext();
-  ImGuiIO& io = ImGui::GetIO();
-  io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
-  io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;
-  io.ConfigFlags |= ImGuiConfigFlags_ViewportsEnable;
-
-  ImGui_ImplDX12_InitInfo initInfo = {};
-  initInfo.Device = rhi->getDevice();
-  initInfo.CommandQueue = rhi->getCmdQueue();
-  initInfo.NumFramesInFlight = FRAME_COUNT;
-  initInfo.RTVFormat = rhi->COLOR_FORMAT;
-  initInfo.SrvDescriptorHeap = rhi->getSrvDescriptorHeap();
-  initInfo.UserData = rhi->getSrvHeap();
-  initInfo.SrvDescriptorAllocFn = [](ImGui_ImplDX12_InitInfo* info,
-                                    D3D12_CPU_DESCRIPTOR_HANDLE* out_cpu_handle,
-                                    D3D12_GPU_DESCRIPTOR_HANDLE* out_gpu_handle) {
-    static_cast<ExampleDescriptorHeapAllocator*>(info->UserData)
-      ->Alloc(out_cpu_handle, out_gpu_handle);
-  };
-  initInfo.SrvDescriptorFreeFn = [](ImGui_ImplDX12_InitInfo* info,
-                                   D3D12_CPU_DESCRIPTOR_HANDLE cpu_handle,
-                                   D3D12_GPU_DESCRIPTOR_HANDLE gpu_handle) {
-    static_cast<ExampleDescriptorHeapAllocator*>(info->UserData)->Free(cpu_handle, gpu_handle);
-  };
-
-  if (!ImGui_ImplDX12_Init(&initInfo)) {
-    Ngin::logFatal("Imgui init failed");
-    std::exit(1);
-    return;
-  }
-
-  if (!ImGui_ImplWin32_Init(hwnd)) {
-    Ngin::logFatal("Imgui init failed");
-    std::exit(1);
-    return;
-  }
+  imgui = std::make_unique<DearImGui>(rhi, hwnd);
   windows.insert_or_assign(hwnd, this);
 };
 
@@ -174,7 +138,7 @@ Error Window::Update() {
   if (hwnd == 0) {
     return Error{PlatformError, "Window handle is NULL"};
   }
-  static bool showDemoWindow = true;
+  static bool showDemoWindow = false;
 
   CheckForClosableWindows();
 
@@ -209,7 +173,6 @@ Error Window::Update() {
     ImGui::Begin("Fuck yeah");
 
     ImGui::Text("Text ig");
-    ImGui::Checkbox("Demo Window", &showDemoWindow);
     ImGui::SliderFloat("floaty boi", &f, 0.f, 100.1f);
 
     if (ImGui::Button("Count my ass"))
@@ -217,17 +180,13 @@ Error Window::Update() {
     ImGui::SameLine();
     ImGui::Text("counter: = %d", counter);
 
+    ImGui::Checkbox("Demo Window", &showDemoWindow);
     ImGui::End();
   }
 
   rhi->Draw(dimensions);
 
-  ImGui::Render();
-  ID3D12DescriptorHeap* descriptorHeaps[] = {rhi->getSrvDescriptorHeap()};
-  rhi->getCmdList()->SetDescriptorHeaps(_countof(descriptorHeaps), descriptorHeaps);
-  ImGui_ImplDX12_RenderDrawData(ImGui::GetDrawData(), rhi->getCmdList());
-  ImGui::UpdatePlatformWindows();
-  ImGui::RenderPlatformWindowsDefault();
+  imgui->Render();
 
   err = rhi->EndFrame();
   if (err)

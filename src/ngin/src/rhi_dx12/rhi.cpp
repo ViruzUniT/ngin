@@ -2,7 +2,7 @@
 
 namespace Ngin {
 Error RHI::Create(const HWND hwnd, const Vec2Rounded windowDimensions, bool& fullscreen,
-  Scope<RHI>& rhi) {
+  Ref<RHI>& rhi) {
   Error err;
   RHI* tempRhi = new RHI(hwnd, windowDimensions, fullscreen, err);
   if (err) {

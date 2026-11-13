@@ -34,6 +34,7 @@ buildoptions({
 	"-Wextra",
 	"-Wunused-result",
 })
+linkoptions({ "-fsanitize=undefined,address" })
 
 filter("toolset:msc")
 warnings("Extra")
